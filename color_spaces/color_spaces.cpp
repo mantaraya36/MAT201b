@@ -22,6 +22,7 @@ public:
   std::vector<Vec3f> posB;
   std::vector<Vec3f> posC;
   std::vector<Vec3f> posD;
+  float t = 0;
   
   MyApp() {
     nav().pos(0,0,4);
@@ -78,11 +79,14 @@ public:
     }
   }
   void onAnimate(double dt){
+
+    if (t < 1.0) t += dt / 10;
+
     if (status == 1) {
         for (size_t row = 0; row < h; row++) {
           for (size_t col = 0; col < w; col++) {
             if (c_pos[row * w + col] != posA[row * w + col] ){
-              c_pos[row * w + col].lerp(posA[row * w + col], 1 * dt);
+              c_pos[row * w + col].lerp(posA[row * w + col], t);
               m.vertices()[row * w + col].x = c_pos[row * w + col].x;
               m.vertices()[row * w + col].y = c_pos[row * w + col].y;
               m.vertices()[row * w + col].z = c_pos[row * w + col].z;
@@ -93,7 +97,7 @@ public:
       for (size_t row = 0; row < h; row++) {
         for (size_t col = 0; col < w; col++) {
            if (c_pos[row * w + col] != posB[row * w + col] ){
-              c_pos[row * w + col].lerp(posB[row * w + col], 1 * dt);
+              c_pos[row * w + col].lerp(posB[row * w + col], t);
               m.vertices()[row * w + col].x = c_pos[row * w + col].x;
               m.vertices()[row * w + col].y = c_pos[row * w + col].y;
               m.vertices()[row * w + col].z = c_pos[row * w + col].z;
@@ -105,7 +109,7 @@ public:
       for (size_t row = 0; row < h; row++) {
         for (size_t col = 0; col < w; col++) {
            if (c_pos[row * w + col] != posC[row * w + col] ){
-              c_pos[row * w + col].lerp(posC[row * w + col], 1 * dt);
+              c_pos[row * w + col].lerp(posC[row * w + col], t);
               m.vertices()[row * w + col].x = c_pos[row * w + col].x;
               m.vertices()[row * w + col].y = c_pos[row * w + col].y;
               m.vertices()[row * w + col].z = c_pos[row * w + col].z;
@@ -116,7 +120,7 @@ public:
       for (size_t row = 0; row < h; row++) {
         for (size_t col = 0; col < w; col++) {
            if (c_pos[row * w + col] != posD[row * w + col] ){
-              c_pos[row * w + col].lerp(posD[row * w + col], 1 * dt);
+              c_pos[row * w + col].lerp(posD[row * w + col], t);
               m.vertices()[row * w + col].x = c_pos[row * w + col].x;
               m.vertices()[row * w + col].y = c_pos[row * w + col].y;
               m.vertices()[row * w + col].z = c_pos[row * w + col].z;
@@ -131,10 +135,10 @@ public:
   }
   void onKeyDown(const Keyboard& k){
 		switch(k.key()){
-		case '1': status = 1; break;
-		case '2': status = 2;; break;
-		case '3': status = 3; break;
-		case '4': status = 4; break;
+		case '1': status = 1; t = 0;; break;
+		case '2': status = 2; t = 0; break;
+		case '3': status = 3; t = 0; break;
+		case '4': status = 4; t = 0; break;
         case '5': nav().pos(0,0,4);nav().faceToward(Vec3f(0,0,0), 1);//facing a way litle by little break;
 		}
 	}
