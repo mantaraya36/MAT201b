@@ -139,7 +139,7 @@ public:
 		case '2': status = 2; t = 0; break;
 		case '3': status = 3; t = 0; break;
 		case '4': status = 4; t = 0; break;
-        case '5': nav().pos(0,0,4);nav().faceToward(Vec3f(0,0,0), 1);//facing a way litle by little break;
+    case '5': nav().pos(0,0,4);nav().faceToward(Vec3f(0,0,0), 1);
 		}
 	}
 };
