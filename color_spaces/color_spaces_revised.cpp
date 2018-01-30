@@ -25,7 +25,7 @@ public:
   float t = 0;
   
   MyApp() {
-    nav().pos(0,0,4);
+    nav().pos(0,0,2);
     const char *filename = "mat201b/color_spaces/plastic_city.jpg";
     if (image.load(filename)) {
       printf("Read image from %s\n", filename);
@@ -79,62 +79,40 @@ public:
     }
   }
   void onAnimate(double dt){
-
-    if (t < 1.0) t += dt / 10;
-
-
-    //for (size_t i = 0; m.vertices().size(); ++i){
-      //c_pos[i].lerp(posA[i];
-      //m.vertices()[i].x = c_pos[i].x;
-      //m.vertices()[i].y = c_pos[i].y;
-      //m.vertices()[i].z = c_pos[i].z;
-    //}
-    if (status == 1) {
-        for (size_t row = 0; row < h; row++) {
-          for (size_t col = 0; col < w; col++) {
-            if (c_pos[row * w + col] != posA[row * w + col] ){
-              c_pos[row * w + col].lerp(posA[row * w + col], t);
-              m.vertices()[row * w + col].x = c_pos[row * w + col].x;
-              m.vertices()[row * w + col].y = c_pos[row * w + col].y;
-              m.vertices()[row * w + col].z = c_pos[row * w + col].z;
-             }
-           } 
-        }
-    }  else if (status == 2){
-      for (size_t row = 0; row < h; row++) {
-        for (size_t col = 0; col < w; col++) {
-           if (c_pos[row * w + col] != posB[row * w + col] ){
-              c_pos[row * w + col].lerp(posB[row * w + col], t);
-              m.vertices()[row * w + col].x = c_pos[row * w + col].x;
-              m.vertices()[row * w + col].y = c_pos[row * w + col].y;
-              m.vertices()[row * w + col].z = c_pos[row * w + col].z;
-             }
-           } 
-        }
-    
-    } else if (status == 3){
-      for (size_t row = 0; row < h; row++) {
-        for (size_t col = 0; col < w; col++) {
-           if (c_pos[row * w + col] != posC[row * w + col] ){
-              c_pos[row * w + col].lerp(posC[row * w + col], t);
-              m.vertices()[row * w + col].x = c_pos[row * w + col].x;
-              m.vertices()[row * w + col].y = c_pos[row * w + col].y;
-              m.vertices()[row * w + col].z = c_pos[row * w + col].z;
-             }
-           } 
-        }
-    } else if (status == 4){
-      for (size_t row = 0; row < h; row++) {
-        for (size_t col = 0; col < w; col++) {
-           if (c_pos[row * w + col] != posD[row * w + col] ){
-              c_pos[row * w + col].lerp(posD[row * w + col], t);
-              m.vertices()[row * w + col].x = c_pos[row * w + col].x;
-              m.vertices()[row * w + col].y = c_pos[row * w + col].y;
-              m.vertices()[row * w + col].z = c_pos[row * w + col].z;
-             }
-           } 
-        }
+  if (t < 1.0) t += dt / 10;
+  
+  if (status == 1){
+    for (unsigned i = 0; i < m.vertices().size(); i++){
+        c_pos[i].lerp(posA[i], t);
+        m.vertices()[i].x = c_pos[i].x;
+        m.vertices()[i].y = c_pos[i].y;
+        m.vertices()[i].z = c_pos[i].z;
     }
+  } else if (status == 2){
+      for (unsigned i = 0; i < m.vertices().size(); i++){
+          c_pos[i].lerp(posB[i], t);
+          m.vertices()[i].x = c_pos[i].x;
+          m.vertices()[i].y = c_pos[i].y;
+          m.vertices()[i].z = c_pos[i].z;
+    }
+  }else if (status == 3){
+      for (unsigned i = 0; i < m.vertices().size(); i++){
+          c_pos[i].lerp(posC[i], t);
+          m.vertices()[i].x = c_pos[i].x;
+          m.vertices()[i].y = c_pos[i].y;
+          m.vertices()[i].z = c_pos[i].z;
+    }
+  }  else if (status == 4){
+      for (unsigned i = 0; i < m.vertices().size(); i++){
+          c_pos[i].lerp(posD[i], t);
+          m.vertices()[i].x = c_pos[i].x;
+          m.vertices()[i].y = c_pos[i].y;
+          m.vertices()[i].z = c_pos[i].z;
+    }
+  }
+  
+  lens().fovx(30 + 60 * (sin(t * 10)+1), (sin(t * 10)+ 1)* 2);
+  
   }
 
   void onDraw(Graphics& g) {
