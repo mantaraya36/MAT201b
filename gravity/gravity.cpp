@@ -31,6 +31,42 @@ int r_int(int init, int span){
     return v;
 }
 
+struct Phasor{  //saw / ramp
+    float phase = 0, increment = 0.001;
+    float frequency(float hz, float sampleRate){
+        increment = hz / sampleRate; //default SR is 44100, blocksize 128
+        //approximately 344 hz
+    }
+    float getNextSample(){
+        float returnValue = phase;
+        phase += increment;
+        if (phase > 1) phase -=1;
+        return returnValue;
+    }
+    //overload
+    float operator()(){
+        return getNextSample();
+    }
+};
+
+struct Sawtooch : Phasor{
+    float getNextSample(){
+        return 2 * Phasor::getNextSample() - 1; //:: is the scope resolution operator
+    }
+    float operator()(){
+        return getNextSample();
+    }
+};
+
+struct Reverb{
+    float effectSample(float sample){
+        return 0;
+    }
+    float operator()(float sample){
+        return effectSample(sample);
+    }
+};
+
 struct Particle {
   Vec3f position, velocity, acceleration;
   float lifespan;
@@ -76,11 +112,12 @@ struct Particle {
   void update(){
       velocity += acceleration * timeStep;
       position += velocity * timeStep;
+      acceleration.zero(); //zero acceleration
       lifespan -= lifeDecaySpeed;
   }
   void collision_detect(Particle other){
         Vec3f difference = (other.position - position);
-        double d = difference.mag();
+        double d = difference.mag(); //unit vector that points to the target
         //gravitational force     // F = ma where m=1
         force = difference / (d * d * d) * gravityFactor;
         acceleration = force;
@@ -160,6 +197,28 @@ struct ParticleSystem {
             }
         }
     }
+    double sp_force_value(){
+        double sp_force_value = 0;
+        for (Particle& p : particles){
+            Vec3f sf = p.spring_force;
+            Vec3f sfn = sf.normalize();
+            //sf.normalize();
+            sp_force_value += sf.mag() + sfn.mag() * 0.3;
+        }
+        return sp_force_value;
+    }
+    double average_velocity_mag(){
+        int count = 0;
+        double d = 0;
+        for (Particle& p : particles){
+            d += p.velocity.mag();
+            count ++;
+        }
+        if (count > 0){
+            d /= count;
+        }
+        return d;
+    }
 };
 
 struct MyApp : App {
@@ -171,6 +230,10 @@ struct MyApp : App {
   float t = 0;
   float generator_speed = 1.5;
 
+  //audio params
+  Phasor phasor;
+  Sawtooch saw;
+
   MyApp() {
     //basic settings
     addSphere(sphere, sphereRadius);
@@ -180,7 +243,10 @@ struct MyApp : App {
     lens().far(400);                 // set the far clipping plane
     background(Color(0.07));
     initWindow();
-    initAudio();
+    initAudio(44100);
+
+    phasor.frequency(261,44100);
+    saw.frequency(35, 44100); //0.2 hz ->5seconds for one round, or faster
 
     //description of key functions
     cout << "press 1 : reverse time" << endl;
@@ -219,7 +285,6 @@ struct MyApp : App {
             ps.addParticle();
         }
     }
-
   }
 
   void onDraw(Graphics& g) {
@@ -229,10 +294,16 @@ struct MyApp : App {
     ps.draw(g);
   }
 
-  void onSound(AudioIO& io) {
+  void onSound(AudioIOData& io) {
+     //io(); // means ready yourself for the next sample set
     while (io()) {
-      io.out(0) = 0;
-      io.out(1) = 0;
+    phasor.frequency(20 * ps.sp_force_value(), 44100);
+    saw.frequency(ps.average_velocity_mag() * 5,44100);
+    float s = phasor() * 0.3 + saw() * 0.08;
+      
+        io.out(0) = s;
+        io.out(1) = s;
+     
     }
   }
 
