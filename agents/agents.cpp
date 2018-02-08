@@ -6,10 +6,12 @@ using namespace std;
 
 //MAT 201B Winter 2018
 //Mengyu Chen
+//mengyuchen@ucsb.edu
+//licensed under the MIT license
 
 double scaleFactor = 0.1;  
-double coneRadius = 2;
-double coneHeight = 6;
+double coneRadius = 3;
+double coneHeight = coneRadius * 3;
 double sphereRadius = 3;
 double boundary_radius = 200; //a spherical boundary with center at (0,0,0)
 Vec3f boundary_origin(0,0,0); //boundary center as (0,0,0)
@@ -23,6 +25,34 @@ Vec3f r() { return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()); }
 float MapValue(float x, float in_min, float in_max, float out_min, float out_max){
   return (x - in_min) * (out_max  - out_min) / (in_max - in_min) + out_min;
 }
+
+struct Phasor{  //saw / ramp
+    float phase = 0, increment = 0.001;
+    float frequency(float hz, float sampleRate){
+        increment = hz / sampleRate; //default SR is 44100, blocksize 128
+        //approximately 344 hz
+    }
+    float getNextSample(){
+        float returnValue = phase;
+        phase += increment;
+        if (phase > 1) phase -=1;
+        return returnValue;
+    }
+    //overload
+    float operator()(){
+        return getNextSample();
+    }
+};
+
+struct Sawtooch : Phasor{
+    float getNextSample(){
+        return 2 * Phasor::getNextSample() - 1; //:: is the scope resolution operator
+    }
+    float operator()(){
+        return getNextSample();
+    }
+};
+
 struct Frame : Mesh {
         double length = 6;
         Frame(){
@@ -102,6 +132,7 @@ struct Target{
       }
   }
 };
+
 struct Target_group{
     vector<Target> targets;
     Target_group(){
@@ -157,11 +188,7 @@ struct Boid {
         velocity = Vec3f(0,0,0);
         pose.pos() = r() * initialRadius;
         c = HSV(rnd::uniform(), 0.7, 1);
-        
     }
-    // double uniqueID(){
-
-    // }
     
     Vec3f seek(Vec3f target){
         Vec3f desired = target - pose.pos();
@@ -223,7 +250,7 @@ struct Boid {
             if (td < min){
                 min = td;
                 min_id = i;
-            }     //need to find the nearest target
+            } 
         }
 
         //find center of clan position
@@ -231,7 +258,6 @@ struct Boid {
             Vec3f difference = pose.pos() - other.pose.pos();
             double d = difference.mag();
             if ((d > 0) && (d < neighbour_senseRadius)){
-                //sum += other.velocity;
                 sum += other.pose.pos();
                 count ++;
             }
@@ -250,8 +276,7 @@ struct Boid {
             Vec3f src = Vec3f(pose.quat().toVectorZ()).normalize();
             Vec3f dst = Vec3f(tg.targets[min_id].position - pose.pos()).normalize();
             Quatd rot = Quatd::getRotationTo(src,dst);
-            pose.quat() =  rot * pose.quat();
-            
+            pose.quat() =  rot * pose.quat();      
         } else {
             //if no target nearby, look at where clan is moving to
             Vec3f src = Vec3f(pose.quat().toVectorZ()).normalize();
@@ -274,7 +299,6 @@ struct Boid {
         int count = 0;
         for (Boid other : c){
             Vec3f difference = pose.pos() - other.pose.pos();
-            //do we need to check if this == other?
             double d = difference.mag();
             if ((d > 0) && (d < desiredseparation)){
                 Vec3d diff = difference.normalize();
@@ -336,6 +360,18 @@ struct Boid {
             return Vec3f(0,0,0);
         }
     }
+
+    int myFriends(vector<Boid> c){
+        int friends = 0;
+        for (Boid other : c){
+            Vec3f difference = pose.pos() - other.pose.pos();
+            double d = difference.mag();
+            if ((d > 0) && (d < neighbour_senseRadius)){
+                friends ++;
+            }
+        }
+        return friends;
+    }
     
     void flock(vector<Boid> c){
         Vec3f sep(separate(c));
@@ -352,7 +388,7 @@ struct Boid {
         applyForce(bd);
     }
 
-    //some sort of gravitational force from the center, also initial force
+    //some sort of gravitational force from the center, also constant base force
     void seekCenter(){
         Vec3f center(0,0,0);
         Vec3f sk(seek(center));
@@ -360,6 +396,7 @@ struct Boid {
             applyForce(sk);
     }
 
+    //turn around when border reached
     Vec3f border_detect(){
         Vec3f origin(0,0,0);
         Vec3f distance = pose.pos() - origin;
@@ -385,7 +422,6 @@ struct Boid {
         g.draw(fm);
         g.popMatrix();
     }
-    
 };
 
 struct Clan {
@@ -418,6 +454,25 @@ struct Clan {
             b.seekCenter();
             b.find_direction(boids, tg);
         }
+    }
+    double average_velocity(){
+        int count = 0;
+        double v = 0;
+        for (Boid& b : boids){
+            v += b.velocity.mag();
+            count ++;
+        }
+        if (count > 0){
+            v /= count;
+        }
+        return v;
+    }
+    int solitude_level(){
+        int total_friends = 0;
+        for (Boid& b : boids){
+            total_friends += b.myFriends(boids);
+        }
+        return total_friends;
     }
 };
 
@@ -466,6 +521,10 @@ struct MyApp : App {
   Clan c;
   Target_group tg;
 
+  //audio params
+  Phasor phasor;
+  Sawtooch saw;
+
   MyApp() {
     //basic settings
     addCone(cone, coneRadius, Vec3f(0,0,coneHeight));
@@ -473,17 +532,22 @@ struct MyApp : App {
     addSphere(sphere, sphereRadius);
     sphere.generateNormals();
     light.pos(0, 0, 0);              // place the light
-    nav().pos(0, 0, 30);             // place the viewer
+    nav().pos(0, 0, 50);             // place the viewer
     lens().far(400);                 // set the far clipping plane
     background(Color(0.07));
     initWindow();
     initAudio();
 
+    initAudio(44100);
+
+    phasor.frequency(261,44100);
+    saw.frequency(35, 44100); //0.2 hz ->5seconds for one round, or faster
+
     //description of key functions
     cout << "press 1 : grow on/off" << endl;
-    
+    cout << "press 2 : simulate on/off" << endl;
+    cout << "press 3 : target move/stop" << endl;
 
-    
   }
 
   void onAnimate(double dt) {
@@ -507,7 +571,6 @@ struct MyApp : App {
         }
     }
 
-
     c.run(tg);
     if (target_run){
         if (tg.targets.size() < 3){
@@ -516,6 +579,7 @@ struct MyApp : App {
         tg.applyBehaviors();
     }
 
+    //cout << c.solitude_level() << endl;
   }
 
   void onDraw(Graphics& g) {
@@ -526,10 +590,15 @@ struct MyApp : App {
     tg.draw(g);
   }
 
-  void onSound(AudioIO& io) {
+  void onSound(AudioIOData& io) {
     while (io()) {
-      io.out(0) = 0;
-      io.out(1) = 0;
+    phasor.frequency(10 * c.solitude_level(), 44100);
+    saw.frequency(c.average_velocity() * 20,44100);
+    float s = phasor() * 0.3 + saw() * 0.08;
+      
+        io.out(0) = s;
+        io.out(1) = s;
+     
     }
   }
 
