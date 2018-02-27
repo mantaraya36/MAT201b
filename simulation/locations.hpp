@@ -161,8 +161,10 @@ struct Natural_Resource_Point : Location{
     float resource_distribution_density;
     int afterDrainTimer;
     int pickCount;
+    int maxResourceNum;
 
     vector<Resource> resources;
+    vector<bool> drain_check;
 
     Natural_Resource_Point(){
         scaleFactor = rnd::uniform(1.0,3.0);
@@ -181,16 +183,26 @@ struct Natural_Resource_Point : Location{
         mesh.decompress();
         mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
+
+        //respawn and drain
         respawn_timer = 0;
         regeneration_rate = 0.1f; //based on 60fps, if 1, then every second, if 2, then half a second
         pickCount = 0;
+        maxResourceNum = 10;
+
         //initialize resource
         resources.resize(3);
         for (int i = resources.size() - 1; i >= 0; i--){
             Resource& r = resources[i];
             r.position = position + r.position * resource_spawn_radius;
         }
+        //drain check stuff
+        drain_check.resize(maxResourceNum + 1);
+        for (int i = drain_check.size() - 1; i >= 0; i--){
+            drain_check[i] = false;
+        }
         afterDrainTimer = 0;
+
     }
 
     void respawn_resource(){
@@ -204,7 +216,7 @@ struct Natural_Resource_Point : Location{
             if (respawn_timer > 1000) {
                 respawn_timer = 0;
             }
-        } else {
+        } else if (drained()){
             if (afterDrainTimer == 720){
                 Resource r;
                 r.position = position + r.position * resource_spawn_radius;
@@ -224,44 +236,46 @@ struct Natural_Resource_Point : Location{
                 r.timer++;
                 if (r.timer == 120){
                     r.isPicked = true;
-                    r.position.set(200,200,200);
+                    drain_check[i] = true;
+                    //r.position.set(200,200,200);
                 }
-                if (r.timer == 160){
-                    r.timer = 0;
+                if (r.timer == 360){
                     resources.erase(resources.begin() + i);
                 }
             }
         }
     }
     bool drained(){
-        if (resources.size() == 0){
-            return true;
-        } else {
-            return false;
-        }
-        // pickCount = 0;
-        // for (int i = 0; i < resources.size(); i++){
-        //     if (resources[i].isPicked){
-        //         pickCount += 1;
-        //     }
-        // }
-        // if (pickCount >= resources.size()){
+        // if (resources.size() == 0){
         //     return true;
         // } else {
         //     return false;
         // }
+        pickCount = 0;
+        for (int i = 0; i < drain_check.size(); i++){
+            if (drain_check[i]){
+                pickCount += 1;
+            }
+        }
+        if (pickCount >= resources.size()){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void draw(Graphics& g) {
         for (int i = resources.size() - 1; i >= 0; i--){
             Resource& r = resources[i];
-            g.pushMatrix();
-            g.translate(r.position);
-            g.rotate(r.angle2, 1,0,0);
-            g.rotate(r.angle1, 0,1,0);
-            g.scale(scaleFactor);
-            g.draw(mesh);
-            g.popMatrix();
+            if (!r.isPicked){
+                g.pushMatrix();
+                g.translate(r.position);
+                g.rotate(r.angle2, 1,0,0);
+                g.rotate(r.angle1, 0,1,0);
+                g.scale(scaleFactor);
+                g.draw(mesh);
+                g.popMatrix();
+            }
         }
         
     }

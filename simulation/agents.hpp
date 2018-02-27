@@ -119,23 +119,29 @@ struct Miner : Agent {
         Vec3f sum;
         int count = 0;
         float min = 9999;
-        int min_id;   
-        for (int i = nrps[id_ClosestNRP].resources.size() - 1; i >= 0; i--){
-            Vec3f dist_difference = pose.pos() - nrps[id_ClosestNRP].resources[i].position;
-            double dist = dist_difference.mag();
-            if (dist < min){
-                min = dist;
-                min_id = i;
-                id_ClosestResource = min_id;
-                distToClosestResource = dist;
+        int min_id;
+        if (!nrps[id_ClosestNRP].drained()){
+            for (int i = nrps[id_ClosestNRP].resources.size() - 1; i >= 0; i--){
+                if (!nrps[id_ClosestNRP].resources[i].isPicked){
+                    Vec3f dist_difference = pose.pos() - nrps[id_ClosestNRP].resources[i].position;
+                    double dist = dist_difference.mag();
+                    if (dist < min){
+                        min = dist;
+                        min_id = i;
+                        id_ClosestResource = min_id;
+                        distToClosestResource = dist;
+                    }
+                }
             }
-        }
-        if (distToClosestResource < sensitivityResource){
-            if (!nrps[id_ClosestNRP].drained()){
-                Vec3f collectNR(seek(nrps[id_ClosestNRP].resources[min_id].position));
-                collectNR *= collectResourceForce;
-                applyForce(collectNR);
+            if (distToClosestResource < sensitivityResource){
+                if (!nrps[id_ClosestNRP].drained()){
+                    Vec3f collectNR(seek(nrps[id_ClosestNRP].resources[min_id].position));
+                    collectNR *= collectResourceForce;
+                    applyForce(collectNR);
+                }
             }
+        } else {
+            resourcePointFound = false;
         }
     }
 

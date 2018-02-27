@@ -53,16 +53,20 @@ struct Factories {
     }
     void drawLinks(Capitalist_Entity& cs){
         if (drawingLinks){
-            for(int i = cs.cs.size() - 1; i >= 0; i --){
+            for (int i = cs.cs.size() - 1; i >= 0; i --){
                 lines[i].vertices()[0] = cs[i].pose.pos();
                 lines[i].vertices()[1] = fs[i].position;
             }
         } else{
-            for(int i = cs.cs.size() - 1; i >= 0; i --){
+            for (int i = cs.cs.size() - 1; i >= 0; i --){
                 lines[i].vertices()[0] = Vec3f(0,0,0);
                 lines[i].vertices()[1] = Vec3f(0,0,0);
             }
         }
+    }
+
+    void bankrupt(){
+        //capitalist won't die, instead the factory dies
     }
 
     void run(){
