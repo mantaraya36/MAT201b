@@ -1,13 +1,9 @@
 #include "allocore/io/al_App.hpp"
-#include "Cuttlebone/Cuttlebone.hpp"
-#include "common.hpp"
 using namespace al;
 using namespace std;
 
 //Mat 201B 2018 Winter
 //Mengyu Chen
-//mengyuchen@ucsb.edu
-//licensed under the MIT license
 
 // some of these must be carefully balanced; i spent some time turning them.
 // change them however you like, but make a note of these settings.
@@ -71,6 +67,13 @@ struct Reverb{
     }
 };
 
+//Phasor p,s;
+//gain g;
+//Reverb r;
+//p.getNextSample() + s.getNextSample() * gain.getNextSample();
+//--> p() + s() * g();
+//p() + r(s())* g();
+
 struct Particle {
   Vec3f position, velocity, acceleration;
   float lifespan;
@@ -109,24 +112,23 @@ struct Particle {
       if (position != p.position || lifespan != p.lifespan){
         return true;
       } else {
-          return false;
+        return false;
       }
   }
 
   void update(){
       velocity += acceleration * timeStep;
       position += velocity * timeStep;
-      acceleration.zero(); //zero acceleration
       lifespan -= lifeDecaySpeed;
   }
-  void collision_detect(const Particle& other){
+  void collision_detect(Particle other){
         Vec3f difference = (other.position - position);
-        double d = difference.mag(); //unit vector that points to the target
+        double d = difference.mag();
         //gravitational force     // F = ma where m=1
         force = difference / (d * d * d) * gravityFactor;
         acceleration = force;
 
-        //spring force calculation with hooke's law
+        //force calculation with hooke's law
         if (d > 0 && d < min_distance){
             Vec3f v = velocity - other.velocity; //relative velocity
             spring_force = -difference * spring_k - v * spring_b;
@@ -159,14 +161,11 @@ struct Particle {
 struct ParticleSystem {
     vector<Particle> particles;
     Vec3f origin;
-    int init_number;
 
     ParticleSystem(){
         origin = Vec3f(0,0,0);
-        init_number = 10;
-        particles.resize(init_number);
     }
-    virtual void addParticle(){
+    void addParticle(){
         Particle p;
         //p.position = origin; //all start from one origin
         particles.push_back(p);
@@ -195,7 +194,7 @@ struct ParticleSystem {
             p.update();
         }
     }
-    virtual void draw(Graphics& g){
+    void draw(Graphics& g){
         for (int i = particles.size() - 1; i >= 0; i--){
             Particle& p = particles[i];
             p.draw(g);
@@ -203,28 +202,6 @@ struct ParticleSystem {
                 particles.erase(particles.begin() + i);
             }
         }
-    }
-    double sp_force_value(){
-        double sp_force_value = 0;
-        for (Particle& p : particles){
-            Vec3f sf = p.spring_force;
-            Vec3f sfn = sf.normalize();
-            //sf.normalize();
-            sp_force_value += sf.mag() + sfn.mag() * 0.3;
-        }
-        return sp_force_value;
-    }
-    double average_velocity_mag(){
-        int count = 0;
-        double v = 0;
-        for (Particle& p : particles){
-            v += p.velocity.mag();
-            count ++;
-        }
-        if (count > 0){
-            v /= count;
-        }
-        return v;
     }
 };
 
@@ -238,14 +215,10 @@ struct MyApp : App {
   float generator_speed = 1.5;
 
   //audio params
-  Phasor phasor;
   Sawtooch saw;
+  Phasor frequency;
 
-  //cuttlebone
-  State state;
-  cuttlebone::Maker<State> maker;
-
-  MyApp() : maker("255.255.255.255"){
+  MyApp() {
     //basic settings
     addSphere(sphere, sphereRadius);
     sphere.generateNormals();
@@ -255,13 +228,8 @@ struct MyApp : App {
     background(Color(0.07));
     initWindow();
     initAudio(44100);
-
-    phasor.frequency(261,44100);
-    saw.frequency(35, 44100); //0.2 hz ->5seconds for one round, or faster
-
-    //state data initialization
-    state.sphereRadius = sphereRadius;
-    state.scaleFactor = scaleFactor;
+    saw.frequency(261,44100);
+    frequency.frequency(35, 44100); //0.2 hz ->5seconds for one round, or faster
 
     //description of key functions
     cout << "press 1 : reverse time" << endl;
@@ -275,23 +243,16 @@ struct MyApp : App {
     cout << "press 9 : reset camera position" << endl;
     cout << "press 0 : reset all to default" << endl;
     cout << "press - : slower autogeneration" << endl;
-    cout << "press = : faster autogeneration" << endl;
+    cout << "press + : faster autogeneration" << endl;
+
+    
   }
 
-  virtual void onAnimate(double dt) {
-    
-    //cuttlebone maker set
-    maker.set(state);
-
+  void onAnimate(double dt) {
     if (!simulate)
       // skip the rest of this function
       return;
 
-    if (generator) {
-        if (t == 0.0){
-            ps.addParticle();
-        }
-    }
     //particle system update
     ps.update();
     ps.applyForce();
@@ -303,37 +264,29 @@ struct MyApp : App {
     } else {
         t = 0.0;
     }
-   
-    //update state
-    state.particle_number = ps.particles.size();
-    for (unsigned i = 0; i < state.particle_number; ++i){
-        state.p_pos[i] = ps.particles[i].position;
-        state.p_colors[i] = ps.particles[i].c;
+    //generate more
+    if (generator) {
+        if (t == 0.0){
+            ps.addParticle();
+        }
     }
-    state.sp_force_value = ps.sp_force_value();
-    state.average_velocity_mag = ps.average_velocity_mag();
+
   }
 
-  virtual void onDraw(Graphics& g) {
+  void onDraw(Graphics& g) {
     material();
     light();
     g.scale(scaleFactor);
     ps.draw(g);
   }
 
-  virtual void onSound(AudioIOData& io) {
-     //io(); // means ready yourself for the next sample set
+  void onSound(AudioIOData& io) {
+    //io(); // means ready yourself for the next sample set
     while (io()) {
-        phasor.frequency(20 * ps.sp_force_value(), 44100);
-        saw.frequency(ps.average_velocity_mag() * 5,44100);
-        float sample = phasor() * 0.3 + saw() * 0.08;  
-        
-        //io.out(0) = sample;
-        //io.out(1) = sample;
-        io.out(0) = 0;
-        io.out(1) = 0;
-        
-     
+        saw.frequency(200 + 100 * frequency(), 44100);
+      float s = saw() * 0.3;
+      io.out(0) = s;
+      io.out(1) = s;
     }
   }
 
@@ -396,8 +349,5 @@ struct MyApp : App {
   }
 };
 
-int main() { 
-    MyApp app;
-    app.maker.start();
-    app.start(); 
+int main() { MyApp().start(); 
 }

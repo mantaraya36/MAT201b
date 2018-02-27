@@ -52,7 +52,6 @@ struct Sawtooch : Phasor{
         return getNextSample();
     }
 };
-
 struct Frame : Mesh {
         double length = 6;
         Frame(){
@@ -173,6 +172,7 @@ struct Boid {
     Color c;
     Quatd q;
     Frame fm;
+    Mesh sphere;
 
     Boid(){
         maxAcceleration = 30;
@@ -230,14 +230,14 @@ struct Boid {
     //not used, only for special single target
     Quatd facing_single_target(Vec3f t){
         Quatd q;
-        Vec3f src = Vec3f(pose.quat().toVectorZ()).normalize();
-        Vec3f dst = Vec3f(t - pose.pos()).normalize();
+        Vec3f src = Vec3f(pose.quat().toVectorZ()).normalize(); //initial
+        Vec3f dst = Vec3f(t - pose.pos()).normalize(); //destination
         Vec3f desired = t - pose.pos();
         float d = desired.mag();
         Quatd rot = Quatd::getRotationTo(src,dst);
         return q;
     }
-    void find_direction(vector<Boid> c, Target_group tg){
+    void find_direction(vector<Boid>& c, Target_group& tg){
         Vec3f sum(0,0,0);
         int count = 0;
         double min = 99999;
@@ -294,7 +294,7 @@ struct Boid {
       }
     }
 
-    Vec3f separate(vector<Boid> c){
+    Vec3f separate(vector<Boid>& c){
         Vec3f sum;
         int count = 0;
         for (Boid other : c){
@@ -318,7 +318,7 @@ struct Boid {
             return Vec3f(0,0,0);
         }
     }
-    Vec3f alignment(vector<Boid> c){
+    Vec3f alignment(vector<Boid>& c){
         Vec3f sum(0,0,0);
         int count = 0;
         for (Boid other : c) {
@@ -342,7 +342,7 @@ struct Boid {
         }
     }
 
-    Vec3f cohesion(vector<Boid> c){
+    Vec3f cohesion(vector<Boid>& c){
         Vec3f sum(0,0,0);
         int count = 0;
         for (Boid other : c){
@@ -361,7 +361,7 @@ struct Boid {
         }
     }
 
-    int myFriends(vector<Boid> c){
+    int myFriends(vector<Boid>& c){
         int friends = 0;
         for (Boid other : c){
             Vec3f difference = pose.pos() - other.pose.pos();
@@ -373,7 +373,7 @@ struct Boid {
         return friends;
     }
     
-    void flock(vector<Boid> c){
+    void flock(vector<Boid>& c){
         Vec3f sep(separate(c));
         Vec3f ali(alignment(c));
         Vec3f coh(cohesion(c));
@@ -428,6 +428,7 @@ struct Clan {
     vector<Boid> boids;
 
     Clan(){
+
     }
 
     Boid operator [](const int index) const {
@@ -518,8 +519,8 @@ struct MyApp : App {
   float t = 0;
   float timer_speed = 1.5;
 
-  Clan c;
   Target_group tg;
+  Clan c;
 
   //audio params
   Phasor phasor;
@@ -527,7 +528,7 @@ struct MyApp : App {
 
   MyApp() {
     //basic settings
-    addCone(cone, coneRadius, Vec3f(0,0,coneHeight));
+    addCone(cone, coneRadius, Vec3f(0,0,coneHeight)); 
     cone.generateNormals();
     addSphere(sphere, sphereRadius);
     sphere.generateNormals();
@@ -572,6 +573,7 @@ struct MyApp : App {
     }
 
     c.run(tg);
+
     if (target_run){
         if (tg.targets.size() < 3){
             tg.add_target();

@@ -6,7 +6,6 @@
 #include "location_base.hpp"
 #include "agents.hpp"
 
-
 //reference: Platonic Solids by Lance Putnam
 
 using namespace al;
@@ -26,25 +25,27 @@ struct Capitalist;
 struct Resource {
     Vec3f position;
     Color c;
-    float expiration_timer;
     float angle1;
     float rotation_speed1;
     float angle2;
     float rotation_speed2;
+    bool isPicked;
+    bool beingPicked;
+    int timer;
 
     Resource(){
         position = r();
         c = HSV(rnd::uniformS(), 0.7, 1);
-        expiration_timer = 0;
         angle1 = 0.0f;
         angle2 = 0.0f; 
         rotation_speed1 = rnd::uniform(0.8,1.8);
         rotation_speed2 = rnd::uniform(0.5,1.2);
+        isPicked = false;
+        beingPicked = false;
+        timer = 0;
     }
 
     void update(){
-        expiration_timer += rnd::uniform(0.5, 2.0);
-        
         angle1 += rotation_speed1;
         if (angle1 > 360){
             angle1 = 0;
@@ -54,30 +55,7 @@ struct Resource {
             angle2 = 0;
         }
     }
-
-    void pick_detect(const vector<Worker>& workers){
-        //leave for forward declaration
-        //implementation in inline hpp file
-    }
     
-    bool isPicked(){
-        // if (expiration_timer > 120){
-        //     return true;
-        // } else {
-        //     return false;
-        // }
-        return false;
-    }
-
-    void draw(Graphics& g, Mesh mesh, float spawnRadius){
-        g.pushMatrix();
-        g.translate(position * spawnRadius);
-        g.rotate(angle2, 1,0,0);
-        g.rotate(angle1, 0,1,0);
-        g.color(c);
-        g.draw(mesh);
-        g.popMatrix();
-    }
 };
 
 
@@ -166,6 +144,7 @@ struct Factory : Location{
         g.translate(position);
         g.rotate(facing_center);
         g.rotate(angle1, 0,0,1);
+        g.scale(scaleFactor);
         g.color(c);
         g.draw(mesh);
         g.popMatrix();
@@ -180,6 +159,8 @@ struct Natural_Resource_Point : Location{
     Vec3f temp_pos;
     float mesh_Nv;
     float resource_distribution_density;
+    int afterDrainTimer;
+    int pickCount;
 
     vector<Resource> resources;
 
@@ -201,51 +182,90 @@ struct Natural_Resource_Point : Location{
         mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
         respawn_timer = 0;
-        regeneration_rate = 0.3f; //based on 60fps, if 1, then every second, if 2, then half a second
+        regeneration_rate = 0.1f; //based on 60fps, if 1, then every second, if 2, then half a second
+        pickCount = 0;
+        //initialize resource
         resources.resize(3);
+        for (int i = resources.size() - 1; i >= 0; i--){
+            Resource& r = resources[i];
+            r.position = position + r.position * resource_spawn_radius;
+        }
+        afterDrainTimer = 0;
     }
 
     void respawn_resource(){
-        respawn_timer++;
-        if (respawn_timer % (int)floorf(60.0f / regeneration_rate) == 0){
-            Resource r;
-            resources.push_back(r);
+        if (!drained() && resources.size() <= 10){
+            respawn_timer++;
+            if (respawn_timer % (int)floorf(60.0f / regeneration_rate) == 0){
+                Resource r;
+                r.position = position + r.position * resource_spawn_radius;
+                resources.push_back(r);
+            }
+            if (respawn_timer > 1000) {
+                respawn_timer = 0;
+            }
+        } else {
+            if (afterDrainTimer == 720){
+                Resource r;
+                r.position = position + r.position * resource_spawn_radius;
+                resources.push_back(r);
+                afterDrainTimer = 0;
+            }
+            afterDrainTimer ++;
         }
-        if (respawn_timer > 1000) {
-            respawn_timer = 0;
-        }
+        
     }
+
     void update_resource(){
         for (int i = resources.size() - 1; i >= 0; i--){
             Resource& r = resources[i];
             r.update();
-            if (r.isPicked()){
-                resources.erase(resources.begin() + i);
+            if (r.beingPicked){
+                r.timer++;
+                if (r.timer == 120){
+                    r.isPicked = true;
+                    r.position.set(200,200,200);
+                }
+                if (r.timer == 160){
+                    r.timer = 0;
+                    resources.erase(resources.begin() + i);
+                }
             }
         }
     }
     bool drained(){
-        if (resources.size() == 0) {
+        if (resources.size() == 0){
             return true;
         } else {
             return false;
         }
-
+        // pickCount = 0;
+        // for (int i = 0; i < resources.size(); i++){
+        //     if (resources[i].isPicked){
+        //         pickCount += 1;
+        //     }
+        // }
+        // if (pickCount >= resources.size()){
+        //     return true;
+        // } else {
+        //     return false;
+        // }
     }
 
     void draw(Graphics& g) {
-        g.pushMatrix();
-        g.translate(position);
         for (int i = resources.size() - 1; i >= 0; i--){
             Resource& r = resources[i];
-            r.draw(g, mesh, resource_spawn_radius);
+            g.pushMatrix();
+            g.translate(r.position);
+            g.rotate(r.angle2, 1,0,0);
+            g.rotate(r.angle1, 0,1,0);
+            g.scale(scaleFactor);
+            g.draw(mesh);
+            g.popMatrix();
         }
-        g.popMatrix();
+        
     }
 };
-
-//implementation declaration
-
 
 
 

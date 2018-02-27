@@ -113,7 +113,6 @@ struct MyApp : App {
   }
 };
 
-
 int main() {
   MyApp app;
   app.taker.start();

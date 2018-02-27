@@ -3,12 +3,69 @@
 
 #include "allocore/io/al_App.hpp"
 
+float boundary_radius = 90.0f;
+
 struct Agent{
-    Vec3f position, velocity, acceleration;
+    Vec3f velocity, acceleration;
     Pose pose;
     Color c;
     Quatd q;
     Mesh body;
+    float maxspeed;
+    float minspeed;
+    float mass;
+    float initialRadius;
+    float maxAcceleration;
+    float maxforce;
+    float target_senseRadius;
+    float desiredseparation;
+    float scaleFactor;
+    int bioClock;
+    float moneySavings;
+    float poetryHoldings;
+
+    void update(){
+        velocity += acceleration;
+        if (velocity.mag() > maxspeed){
+            velocity.normalize(maxspeed);
+        }
+        pose.pos() += velocity;
+        acceleration *= 0; //zeros acceleration
+    }    
+    void applyForce(Vec3f force){
+      Vec3f f = force / mass;
+      acceleration += f;
+      if (acceleration.mag() > maxAcceleration){
+        acceleration.normalize(maxAcceleration);
+      }
+    }
+
+    Vec3f seek(Vec3f target){
+        Vec3f desired = target - pose.pos();
+        desired.normalized();
+        desired *= maxspeed;
+        Vec3f steer = desired - velocity;
+        if (steer.mag() > maxforce){
+            steer.normalize(maxforce);
+        }
+        return steer;
+    }
+
+    //border detect
+    void borderDetect(){
+        Vec3f origin(0,0,0);
+        Vec3f distance = pose.pos() - origin;
+        if (distance.mag() > boundary_radius) {
+            Vec3f desired = origin - pose.pos();
+            Vec3f steer = desired - velocity;
+            if (steer.mag() > maxforce) {
+                steer.normalize(maxforce);
+            }
+            applyForce(steer);
+        } else {
+            applyForce(Vec3f(0,0,0));
+        }
+    }
 };
 
 

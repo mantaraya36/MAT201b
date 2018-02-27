@@ -4,6 +4,8 @@ using namespace std;
 
 //Mat 201B 2018 Winter
 //Mengyu Chen
+//mengyuchen@ucsb.edu
+//licensed under the MIT license
 
 // some of these must be carefully balanced; i spent some time turning them.
 // change them however you like, but make a note of these settings.
@@ -115,7 +117,7 @@ struct Particle {
       acceleration.zero(); //zero acceleration
       lifespan -= lifeDecaySpeed;
   }
-  void collision_detect(Particle other){
+  void collision_detect(Particle& other){
         Vec3f difference = (other.position - position);
         double d = difference.mag(); //unit vector that points to the target
         //gravitational force     // F = ma where m=1
@@ -209,15 +211,15 @@ struct ParticleSystem {
     }
     double average_velocity_mag(){
         int count = 0;
-        double d = 0;
+        double v = 0;
         for (Particle& p : particles){
-            d += p.velocity.mag();
+            v += p.velocity.mag();
             count ++;
         }
         if (count > 0){
-            d /= count;
+            v /= count;
         }
-        return d;
+        return v;
     }
 };
 
