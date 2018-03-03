@@ -100,7 +100,6 @@ struct Factory : Location{
     float rotation_speed1;
     Quatd q;
     Quatd facing_center;
-    //vector<Worker> workers;
     Factory(){
         meshOuterRadius = 1.0f;
         meshInnerRadius = 0.2f;
@@ -162,6 +161,7 @@ struct Natural_Resource_Point : Location{
     int afterDrainTimer;
     int pickCount;
     int maxResourceNum;
+    int r_index;
 
     vector<Resource> resources;
     vector<bool> drain_check;
@@ -184,46 +184,69 @@ struct Natural_Resource_Point : Location{
         mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
 
+
         //respawn and drain
         respawn_timer = 0;
-        regeneration_rate = 0.1f; //based on 60fps, if 1, then every second, if 2, then half a second
+        regeneration_rate = 0.5f; //based on 60fps, if 1, then every second, if 2, then half a second
         pickCount = 0;
-        maxResourceNum = 10;
+        maxResourceNum = 5;
+        r_index = 0;
 
         //initialize resource
-        resources.resize(3);
+        resources.resize(maxResourceNum);
         for (int i = resources.size() - 1; i >= 0; i--){
             Resource& r = resources[i];
             r.position = position + r.position * resource_spawn_radius;
+            r.isPicked = true;
         }
         //drain check stuff
         drain_check.resize(maxResourceNum + 1);
         for (int i = drain_check.size() - 1; i >= 0; i--){
-            drain_check[i] = false;
+            drain_check[i] = true;
         }
         afterDrainTimer = 0;
 
     }
 
     void respawn_resource(){
-        if (!drained() && resources.size() <= 10){
+        if (!drained()){
             respawn_timer++;
+
             if (respawn_timer % (int)floorf(60.0f / regeneration_rate) == 0){
-                Resource r;
-                r.position = position + r.position * resource_spawn_radius;
-                resources.push_back(r);
+                while (resources[r_index].beingPicked){
+                    if (r_index < maxResourceNum - 1){
+                        r_index += 1;
+                    } else if (r_index >= maxResourceNum - 1){
+                        r_index = 0;
+                    }
+                }
+                resources[r_index].isPicked = false;
+                drain_check[r_index] = false;
+                if (r_index < maxResourceNum - 1){
+                        r_index += 1;
+                } else if (r_index >= maxResourceNum - 1){
+                        r_index = 0;
+                }
+                // Resource r;
+                // r.position = position + r.position * resource_spawn_radius;
+                // resources.push_back(r);
             }
+
+            //don't need to touch here
             if (respawn_timer > 1000) {
                 respawn_timer = 0;
             }
+            
         } else if (drained()){
+            afterDrainTimer ++;
             if (afterDrainTimer == 720){
-                Resource r;
-                r.position = position + r.position * resource_spawn_radius;
-                resources.push_back(r);
+                int r = r_int(0, maxResourceNum);
+                cout << r << " = index of resources generated" << endl;
+                resources[r].isPicked = false;
+                drain_check[r] = false;
                 afterDrainTimer = 0;
             }
-            afterDrainTimer ++;
+            
         }
         
     }
@@ -239,8 +262,10 @@ struct Natural_Resource_Point : Location{
                     drain_check[i] = true;
                     //r.position.set(200,200,200);
                 }
-                if (r.timer == 360){
-                    resources.erase(resources.begin() + i);
+                if (r.timer == 180){
+                    r.beingPicked = false;
+                    r.timer = 0;
+                    // resources.erase(resources.begin() + i);
                 }
             }
         }
@@ -252,7 +277,7 @@ struct Natural_Resource_Point : Location{
         //     return false;
         // }
         pickCount = 0;
-        for (int i = 0; i < drain_check.size(); i++){
+        for (int i = 0; i < resources.size(); i++){
             if (drain_check[i]){
                 pickCount += 1;
             }

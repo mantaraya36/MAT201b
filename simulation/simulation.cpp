@@ -3,7 +3,6 @@
 #include "allocore/spatial/al_Pose.hpp"
 #include "helper.hpp"
 #include "agent_managers.hpp"
-#include "agents.hpp"
 #include "location_managers.hpp"
 
 using namespace al;
@@ -23,7 +22,6 @@ struct MyApp : App {
     Capitalist_Entity cs;
     Miner_Group ms;
 
-
     //event manager
     EventManager eventManager;
 
@@ -39,7 +37,6 @@ struct MyApp : App {
         fs.generate(cs);
     }
     void onAnimate(double dt) {
-
         //locations
         mps.run();
         fs.run();
@@ -52,12 +49,18 @@ struct MyApp : App {
         //eventmanager
         eventManager.updateCollectingStatus(ms.ms);
         nrps.PickEventHandler(eventManager);
-        cout << nrps.nrps[0].drained() << " drained?" << endl;
-        // cout << nrps.nrps[0].regeneration_rate << " regen rate" << endl;
-        cout << nrps.nrps[0].afterDrainTimer << " timer" << endl;
-        cout << nrps.nrps[0].resources.size() << "size = count = " << nrps.nrps[0].pickCount << endl;
+       
         //locational behaviors
         fs.drawLinks(cs);
+
+        //debug
+         cout << nrps.nrps[0].drained() << " drained?" << endl;
+        // cout << nrps.nrps[0].regeneration_rate << " regen rate" << endl;
+        cout << nrps.nrps[0].afterDrainTimer << " timer" << endl;
+        // cout << nrps.nrps[0].resources[0].isPicked << "  r0 is picked?" << endl;
+        // cout << nrps.nrps[0].resources[0].beingPicked << "  r0 being picked?" << endl;
+        cout << nrps.nrps[0].pickCount << "  pickcount?" << endl;
+        //cout << nrps.nrps[0].resources.size() << "size = count = " << nrps.nrps[0].pickCount << endl;
     }
     void onDraw(Graphics& g) {
         material();

@@ -63,8 +63,10 @@ struct Miner_Group{
                     lines[i].vertices()[0] = ms[i].pose.pos();
                     lines[i].vertices()[1] = nrps[ms[i].id_ClosestNRP].resources[ms[i].id_ClosestResource].position;
                 } else {
-                    lines[i].vertices()[0] = ms[i].pose.pos();
-                    lines[i].vertices()[1] = nrps[ms[i].id_ClosestNRP].position;
+                    lines[i].vertices()[0] = Vec3f(0,0,0);
+                    lines[i].vertices()[1] = Vec3f(0,0,0);
+                    // lines[i].vertices()[0] = ms[i].pose.pos();
+                    // lines[i].vertices()[1] = nrps[ms[i].id_ClosestNRP].position;
                 }
             }
         } else {

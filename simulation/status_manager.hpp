@@ -12,7 +12,7 @@ using namespace std;
 struct NRPAlias{
     vector<bool> resource_picked;
     NRPAlias(){
-        resource_picked.resize(100);
+        resource_picked.resize(40);
         
         for (bool b : resource_picked){
             b = false;
@@ -25,8 +25,8 @@ struct EventManager{
     vector<bool> nrps_approached;
 
     EventManager(){
-        nrps.resize(100);
-        nrps_approached.resize(100);
+        nrps.resize(30);
+        nrps_approached.resize(30);
     }
 
     void updateCollectingStatus(vector<Miner>& ms){
@@ -37,7 +37,7 @@ struct EventManager{
         }
 
         for (int i = ms.size() - 1; i >=0; i--){
-            if (ms[i].resourcePointFound){
+            if (ms[i].resourcePointFound && ms[i].distToClosestResource < 5.0){
                 //nrps_approached[ms[i].id_ClosestNRP] = true;
                 //nrps_resources_collecting[ms[i].id_ClosestResource] = true;
                 nrps[ms[i].id_ClosestNRP].resource_picked[ms[i].id_ClosestResource] = true;

@@ -11,10 +11,10 @@
 using namespace al;
 using namespace std;
 
-struct Resource;
-struct Factory;
-struct Natural_Resource_Point;
-struct MetroBuilding;
+// struct Resource;
+// struct Factory;
+// struct Natural_Resource_Point;
+// struct MetroBuilding;
 
 struct Miner : Agent {
     int mesh_Nv;
@@ -32,6 +32,9 @@ struct Miner : Agent {
     float sensitivityResource;
     float desireLevel;
     float separateForce;
+    float resourceHoldings;
+
+    bool overload;
     Miner(){
         maxAcceleration = 2;
         mass = 1.0;
@@ -50,17 +53,19 @@ struct Miner : Agent {
         movingTarget = r();
 
         //relation to resource point
-        distToClosestNRP = 50.0f;
-        distToClosestResource = 30.0f;
+        distToClosestNRP = 120.0f;
+        distToClosestResource = 120.0f;
         id_ClosestNRP = 0;
         resourcePointFound = false;
         id_ClosestResource = 0;
         searchResourceForce = 1.0;
         collectResourceForce = 1.0;
-        sensitivityNRP = 40.0;
+        sensitivityNRP = 30.0;
         sensitivityResource = 8.0;
+        overload = false;
 
         //capitals
+        resourceHoldings = 0.0;
         moneySavings = 30.0;
         poetryHoldings = 0.0;
 
@@ -80,25 +85,28 @@ struct Miner : Agent {
     }
 
     void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others){
-        if (distToClosestNRP < 5.0) {
-            resourcePointFound = true;
-            collectResourceForce = 1.0;
-            searchResourceForce = 0.1;
-            desireLevel = 0.1;
-            separateForce = 1.5;
+        if (!overload){
+            if (distToClosestNRP < 5.0) {
+                resourcePointFound = true;
+                collectResourceForce = 1.0;
+                searchResourceForce = 0.1;
+                desireLevel = 0.1;
+                separateForce = 1.5;
+            } else {
+                resourcePointFound = false;
+                collectResourceForce = 0.1;
+                searchResourceForce = 1.0;
+                separateForce = 0.3;
+                desireLevel = 0.5;
+                facingToward(movingTarget);
+            }
+            //resource mining
+            seekResourcePoint(nrps);
+            if (resourcePointFound == true){
+                collectResource(nrps);
+            } 
         } else {
-            resourcePointFound = false;
-            collectResourceForce = 0.1;
-            searchResourceForce = 1.0;
-            desireLevel = 0.5;
-            separateForce = 0.3;
-        }
-
-
-        //resource mining
-        seekResourcePoint(nrps);
-        if (resourcePointFound == true){
-            collectResource(nrps);
+            //find capitalist for a trade
         }
         
         //separate
@@ -111,15 +119,15 @@ struct Miner : Agent {
         // cout << id_ClosestResource << " resource" << endl;
 
         //default behaviors
-        inherentDesire();
+        inherentDesire(desireLevel, NaturalRadius);
         borderDetect();
         update();
     }
+
+
     void collectResource(vector<Natural_Resource_Point>& nrps){
-        Vec3f sum;
-        int count = 0;
         float min = 9999;
-        int min_id;
+        int min_id = 0;
         if (!nrps[id_ClosestNRP].drained()){
             for (int i = nrps[id_ClosestNRP].resources.size() - 1; i >= 0; i--){
                 if (!nrps[id_ClosestNRP].resources[i].isPicked){
@@ -138,18 +146,16 @@ struct Miner : Agent {
                     Vec3f collectNR(seek(nrps[id_ClosestNRP].resources[min_id].position));
                     collectNR *= collectResourceForce;
                     applyForce(collectNR);
+                    facingToward(nrps[id_ClosestNRP].resources[min_id].position);
                 }
             }
         } else {
             resourcePointFound = false;
         }
     }
-
     void seekResourcePoint(vector<Natural_Resource_Point>& nrps){
-        Vec3f sum;
-        int count = 0;
-        float min = 9999;
-        int min_id;     
+        float min = 999;
+        int min_id = 0;     
         for (int i = 0; i < nrps.size(); i++){
             if (!nrps[i].drained()){
                 Vec3f dist_difference = pose.pos() - nrps[i].position;
@@ -169,9 +175,12 @@ struct Miner : Agent {
                 Vec3f skNRP(seek(nrps[min_id].position));
                 skNRP *= searchResourceForce;
                 applyForce(skNRP);
+                facingToward(nrps[min_id].position);
             } else {
                 resourcePointFound = false;
             }
+        } else {
+            resourcePointFound = false;
         }
     }
 
@@ -199,20 +208,14 @@ struct Miner : Agent {
             return Vec3f(0,0,0);
         }
     }
-    void inherentDesire(){
-        //inherent desire that changes everyday
-        //less influence on Miner as they are far away
-        bioClock++;
-        if (bioClock % 120 == 0) {
-            movingTarget = r() * NaturalRadius;
-        }
-        if (bioClock > 1440 ){
-            bioClock = 0;
-        }
-        Vec3f skTarget(seek(movingTarget));
-        skTarget *= desireLevel;
-        applyForce(skTarget);
+
+    void findPoems(){
+        //30% probability
+        if (rnd::prob(0.3)) {
+            //find poems
+        };
     }
+    
     void draw(Graphics& g){
         g.pushMatrix();
         g.translate(pose.pos());
@@ -232,6 +235,13 @@ struct Worker : Agent {
 
     void seekFactory(const vector<Factory>& f){
 
+    }
+
+    void findPoems(){
+        //30% probability
+        if (rnd::prob(0.3)) {
+            //find poems
+        };
     }
 
 
@@ -266,7 +276,7 @@ struct Capitalist : Agent {
         mesh_Nv = addCone(body, moneySavings / 30.0, Vec3f(0,0,moneySavings / 30.0 * 3));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
-			body.color(HSV(f*0.15,0.9,1));
+			body.color(HSV(f*0.2,0.9,1));
 		}
         body.decompress();
         body.generateNormals();
@@ -279,29 +289,12 @@ struct Capitalist : Agent {
 
         //default behaviors
         borderDetect();
-        inherentDesire();
+        inherentDesire(0.5, MetroRadius);
+        facingToward(movingTarget);
         update();
     }
 
-    void inherentDesire(){
-        //inherent desire that changes everyday
-        //let them search for something in the metropolis
-        bioClock++;
-        if (bioClock % 60 == 0) {
-            movingTarget = r() * MetroRadius;
-        }
-        if (bioClock > 1440 ){
-            bioClock = 0;
-        }
-        Vec3f skTarget(seek(movingTarget));
-        skTarget *= 0.5;
-        applyForce(skTarget);
-
-        //change facing direction based on target
-        Vec3f src = Vec3f(pose.quat().toVectorZ()).normalize();
-        Vec3f dst = Vec3f(movingTarget - pose.pos()).normalize();
-        Quatd rot = Quatd::getRotationTo(src,dst);
-        pose.quat() = rot * pose.quat();
+    void learnPoems(){
 
     }
 

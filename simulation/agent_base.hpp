@@ -23,6 +23,7 @@ struct Agent{
     int bioClock;
     float moneySavings;
     float poetryHoldings;
+    Vec3f movingTarget;
 
     void update(){
         velocity += acceleration;
@@ -40,6 +41,14 @@ struct Agent{
       }
     }
 
+    void facingToward(Vec3f& target){
+        //change facing direction based on target
+        Vec3f src = Vec3f(pose.quat().toVectorZ()).normalize();
+        Vec3f dst = Vec3f(target - pose.pos()).normalize();
+        Quatd rot = Quatd::getRotationTo(src,dst);
+        pose.quat() = rot * pose.quat();
+    }
+
     Vec3f seek(Vec3f target){
         Vec3f desired = target - pose.pos();
         desired.normalized();
@@ -49,6 +58,21 @@ struct Agent{
             steer.normalize(maxforce);
         }
         return steer;
+    }
+
+    void inherentDesire(float desireLevel, float radius){
+        //inherent desire that changes everyday
+        //let them search for something in the metropolis
+        bioClock++;
+        if (bioClock % 60 == 0) {
+            movingTarget = r() * radius;
+        }
+        if (bioClock > 1440 ){
+            bioClock = 0;
+        }
+        Vec3f skTarget(seek(movingTarget));
+        skTarget *= desireLevel;
+        applyForce(skTarget);
     }
 
     //border detect

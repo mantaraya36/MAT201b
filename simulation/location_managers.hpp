@@ -5,6 +5,9 @@
 #include "locations.hpp"
 #include "meshes.hpp"
 #include "status_manager.hpp"
+#include "agents.hpp"
+
+struct Miner;
 
 struct Metropolis{    
     vector<MetroBuilding> mbs;
@@ -96,7 +99,7 @@ struct NRPs {
     vector<Natural_Resource_Point> nrps;
     int initial_num;
     NRPs(){
-        initial_num = 25;
+        initial_num = 15;
         nrps.resize(initial_num);
     }
 
@@ -113,6 +116,7 @@ struct NRPs {
             Natural_Resource_Point& nrp = nrps[i];
             nrp.respawn_resource();
             nrp.update_resource();
+            //nrp.check_picking_status();
         }
     }
     void draw(Graphics& g){
