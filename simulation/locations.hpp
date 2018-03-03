@@ -187,7 +187,7 @@ struct Natural_Resource_Point : Location{
 
         //respawn and drain
         respawn_timer = 0;
-        regeneration_rate = 0.5f; //based on 60fps, if 1, then every second, if 2, then half a second
+        regeneration_rate = 0.35f; //based on 60fps, if 1, then every second, if 2, then half a second
         pickCount = 0;
         maxResourceNum = 5;
         r_index = 0;
@@ -200,7 +200,7 @@ struct Natural_Resource_Point : Location{
             r.isPicked = true;
         }
         //drain check stuff
-        drain_check.resize(maxResourceNum + 1);
+        drain_check.resize(maxResourceNum);
         for (int i = drain_check.size() - 1; i >= 0; i--){
             drain_check[i] = true;
         }
