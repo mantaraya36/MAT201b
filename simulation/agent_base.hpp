@@ -21,7 +21,7 @@ struct Agent{
     float desiredseparation;
     float scaleFactor;
     int bioClock;
-    float moneySavings;
+    float capitalHoldings;
     float poetryHoldings;
     Vec3f movingTarget;
 
@@ -60,12 +60,14 @@ struct Agent{
         return steer;
     }
 
-    void inherentDesire(float desireLevel, float radius){
+    void inherentDesire(float desireLevel, float innerRadius, float outerRadius, int changeRate){
         //inherent desire that changes everyday
         //let them search for something in the metropolis
         bioClock++;
-        if (bioClock % 60 == 0) {
-            movingTarget = r() * radius;
+        if (bioClock % changeRate == 0) {
+            movingTarget = r();
+            Vec3f temp_pos = movingTarget;
+            movingTarget = movingTarget * (outerRadius - innerRadius) + temp_pos.normalize(innerRadius);
         }
         if (bioClock > 1440 ){
             bioClock = 0;
@@ -73,6 +75,27 @@ struct Agent{
         Vec3f skTarget(seek(movingTarget));
         skTarget *= desireLevel;
         applyForce(skTarget);
+
+        Vec3f ar(arrive(movingTarget));
+        ar *= 0.3;
+        applyForce(ar);
+    }
+
+    Vec3f arrive(Vec3f& target){
+        Vec3f desired = target - pose.pos();
+        float d = desired.mag();
+        desired.normalize();
+        if (d < target_senseRadius){
+            float m = MapValue(d, 0, target_senseRadius, minspeed, maxspeed);
+            desired *= m;
+        } else {
+            desired *= maxspeed;
+        }
+        Vec3f steer = desired - velocity;
+        if (steer.mag() > maxforce){
+            steer.normalize(maxforce);
+        }
+        return steer;
     }
 
     //border detect

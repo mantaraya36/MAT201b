@@ -9,11 +9,23 @@ struct Capitalist_Entity{
     vector<Capitalist> cs;
     float initial_num;
     Capitalist_Entity(){
-        initial_num = 10;
+        initial_num = 20;
         cs.resize(initial_num);
     }
     Capitalist operator[] (const int index) const{
         return cs[index];
+    }
+
+    void getResource(vector<Miner>& miners){
+        for (int i = cs.size() - 1; i >= 0; i --){
+            for (int j = miners.size() - 1; i >= 0; i --){
+                 if (i == miners[j].id_ClosestCapitalist){
+                    if (miners[j].tradeTimer == 59){
+                        cs[i].resourceHoldings += miners[j].resourceHoldings;
+                    }
+                 }
+            }
+        }
     }
     void run(vector<MetroBuilding>& mbs){
         for (int i = cs.size() - 1; i >= 0; i --){
@@ -42,7 +54,7 @@ struct Miner_Group{
     bool drawingLinks;
 
     Miner_Group(){
-        initial_num = 30;
+        initial_num = 50;
         ms.resize(initial_num);
         lines.resize(ms.size());
         drawingLinks = true;
@@ -51,10 +63,10 @@ struct Miner_Group{
     Miner operator[] (const int index) const{
         return ms[index];
     }
-    void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others){
+    void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others, vector<Capitalist>& capitalists){
         for (int i = ms.size() - 1; i >=0; i --){
             Miner& m = ms[i];
-            m.run(nrps, others);
+            m.run(nrps, others, capitalists);
         }
         //drawing links
         if (drawingLinks){

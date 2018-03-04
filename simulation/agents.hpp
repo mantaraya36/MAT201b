@@ -15,248 +15,18 @@ using namespace std;
 // struct Factory;
 // struct Natural_Resource_Point;
 // struct MetroBuilding;
-
-struct Miner : Agent {
-    int mesh_Nv;
-    Vec3f movingTarget;
-    Vec3f temp_pos;
-
-    bool resourcePointFound;
-    float distToClosestNRP;
-    float distToClosestResource;
-    int id_ClosestNRP;
-    int id_ClosestResource;
-    float searchResourceForce;
-    float collectResourceForce;
-    float sensitivityNRP;
-    float sensitivityResource;
-    float desireLevel;
-    float separateForce;
-    float resourceHoldings;
-
-    bool overload;
-    Miner(){
-        maxAcceleration = 2;
-        mass = 1.0;
-        maxspeed = 0.5;
-        minspeed = 0.1;
-        maxforce = 0.05;
-        initialRadius = 5;
-        target_senseRadius = 10.0;
-        desiredseparation = 3.0f;
-        acceleration = Vec3f(0,0,0);
-        velocity = Vec3f(0,0,0);
-        pose.pos() = r();
-        temp_pos = pose.pos();
-        pose.pos() = pose.pos() * (NaturalRadius - FactoryRadius) + temp_pos.normalize(FactoryRadius + CirclePadding * 2.0);
-        bioClock = 0;
-        movingTarget = r();
-
-        //relation to resource point
-        distToClosestNRP = 120.0f;
-        distToClosestResource = 120.0f;
-        id_ClosestNRP = 0;
-        resourcePointFound = false;
-        id_ClosestResource = 0;
-        searchResourceForce = 1.0;
-        collectResourceForce = 1.0;
-        sensitivityNRP = 30.0;
-        sensitivityResource = 8.0;
-        overload = false;
-
-        //capitals
-        resourceHoldings = 0.0;
-        moneySavings = 30.0;
-        poetryHoldings = 0.0;
-
-        //social behaviors
-        desireLevel = 0.1;
-        separateForce = 1.5;
-
-        //draw body
-        scaleFactor = 0.3;
-        mesh_Nv = addCone(body, moneySavings / 30.0, Vec3f(0,0,moneySavings / 30.0 * 3));
-        for(int i=0; i<mesh_Nv; ++i){
-			float f = float(i)/mesh_Nv;
-			body.color(HSV(f*0.05,0.9,1));
-		}
-        body.decompress();
-        body.generateNormals();
-    }
-
-    void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others){
-        if (!overload){
-            if (distToClosestNRP < 5.0) {
-                resourcePointFound = true;
-                collectResourceForce = 1.0;
-                searchResourceForce = 0.1;
-                desireLevel = 0.1;
-                separateForce = 1.5;
-            } else {
-                resourcePointFound = false;
-                collectResourceForce = 0.1;
-                searchResourceForce = 1.0;
-                separateForce = 0.3;
-                desireLevel = 0.5;
-                facingToward(movingTarget);
-            }
-            //resource mining
-            seekResourcePoint(nrps);
-            if (resourcePointFound == true){
-                collectResource(nrps);
-            } 
-        } else {
-            //find capitalist for a trade
-        }
-        
-        //separate
-        Vec3f sep(separate(others));
-        sep *= separateForce;
-        applyForce(sep);       
-        // cout << resourcePointFound << "found??" << endl;
-        // cout << distToClosestNRP << endl;
-        // cout<< id_ClosestNRP << "  NRP" << endl;
-        // cout << id_ClosestResource << " resource" << endl;
-
-        //default behaviors
-        inherentDesire(desireLevel, NaturalRadius);
-        borderDetect();
-        update();
-    }
-
-
-    void collectResource(vector<Natural_Resource_Point>& nrps){
-        float min = 9999;
-        int min_id = 0;
-        if (!nrps[id_ClosestNRP].drained()){
-            for (int i = nrps[id_ClosestNRP].resources.size() - 1; i >= 0; i--){
-                if (!nrps[id_ClosestNRP].resources[i].isPicked){
-                    Vec3f dist_difference = pose.pos() - nrps[id_ClosestNRP].resources[i].position;
-                    double dist = dist_difference.mag();
-                    if (dist < min){
-                        min = dist;
-                        min_id = i;
-                        id_ClosestResource = min_id;
-                        distToClosestResource = dist;
-                    }
-                }
-            }
-            if (distToClosestResource < sensitivityResource){
-                if (!nrps[id_ClosestNRP].drained()){
-                    Vec3f collectNR(seek(nrps[id_ClosestNRP].resources[min_id].position));
-                    collectNR *= collectResourceForce;
-                    applyForce(collectNR);
-                    facingToward(nrps[id_ClosestNRP].resources[min_id].position);
-                }
-            }
-        } else {
-            resourcePointFound = false;
-        }
-    }
-    void seekResourcePoint(vector<Natural_Resource_Point>& nrps){
-        float min = 999;
-        int min_id = 0;     
-        for (int i = 0; i < nrps.size(); i++){
-            if (!nrps[i].drained()){
-                Vec3f dist_difference = pose.pos() - nrps[i].position;
-                float dist = dist_difference.mag();
-                if (dist < min){
-                    min = dist;
-                    min_id = i;
-                    //update universal variable for other functions to use
-                    distToClosestNRP = min;
-                    id_ClosestNRP = min_id;
-                }
-            }
-        }
-        if (distToClosestNRP < sensitivityNRP){
-            if (!nrps[min_id].drained()){
-                resourcePointFound = true;
-                Vec3f skNRP(seek(nrps[min_id].position));
-                skNRP *= searchResourceForce;
-                applyForce(skNRP);
-                facingToward(nrps[min_id].position);
-            } else {
-                resourcePointFound = false;
-            }
-        } else {
-            resourcePointFound = false;
-        }
-    }
-
-    Vec3f separate(vector<Miner>& others){
-        Vec3f sum;
-        int count = 0;
-        for (Miner m : others){
-            Vec3f difference = pose.pos() - m.pose.pos();
-            float d = difference.mag();
-            if ((d > 0) && (d<desiredseparation)){
-                Vec3f diff = difference.normalize();
-                sum += diff;
-                count ++;
-            }
-        }
-        if (count > 0){
-            sum /= count;
-            sum.mag(maxspeed);
-            Vec3f steer = sum - velocity;
-            if (steer.mag() > maxforce){
-                steer.normalize(maxforce);
-            }
-            return steer;
-        } else {
-            return Vec3f(0,0,0);
-        }
-    }
-
-    void findPoems(){
-        //30% probability
-        if (rnd::prob(0.3)) {
-            //find poems
-        };
-    }
-    
-    void draw(Graphics& g){
-        g.pushMatrix();
-        g.translate(pose.pos());
-        g.rotate(pose.quat());
-        g.scale(scaleFactor);
-        g.draw(body);
-        g.popMatrix();
-    }
-
-};
-
-struct Worker : Agent {
-    
-    Worker(){
-
-    }
-
-    void seekFactory(const vector<Factory>& f){
-
-    }
-
-    void findPoems(){
-        //30% probability
-        if (rnd::prob(0.3)) {
-            //find poems
-        };
-    }
-
-
-};
-
 struct Capitalist : Agent {
     int mesh_Nv;
     Vec3f movingTarget;
+    int desireChangeRate;
+    int resourceHoldings;
 
     Capitalist(){
         //initial params
-        maxAcceleration = 4;
+        maxAcceleration = 2;
         mass = 1.0;
         maxspeed = 1;
-        minspeed = 0.1;
+        minspeed = 0.3;
         maxforce = 0.1;
         initialRadius = 5;
         target_senseRadius = 10.0;
@@ -266,14 +36,16 @@ struct Capitalist : Agent {
         pose.pos() = r() * initialRadius;
         bioClock = 0;
         movingTarget = r();
+        desireChangeRate = r_int(50, 150);
 
         //capitals
-        moneySavings = 30.0;
+        resourceHoldings = r_int(1, 20);
+        capitalHoldings = r_int(30, 90);
         poetryHoldings = 0.0;
 
         //draw body
         scaleFactor = 0.3; //richness?
-        mesh_Nv = addCone(body, moneySavings / 30.0, Vec3f(0,0,moneySavings / 30.0 * 3));
+        mesh_Nv = addCone(body, capitalHoldings / 30.0, Vec3f(0,0,capitalHoldings / 30.0 * 3));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
 			body.color(HSV(f*0.2,0.9,1));
@@ -289,13 +61,16 @@ struct Capitalist : Agent {
 
         //default behaviors
         borderDetect();
-        inherentDesire(0.5, MetroRadius);
+        inherentDesire(0.5, 0, MetroRadius, desireChangeRate);
         facingToward(movingTarget);
         update();
     }
 
     void learnPoems(){
 
+    }
+    bool bankrupted(){
+        return false;
     }
 
     Vec3f avoidHittingBuilding(vector<MetroBuilding>& mbs){
@@ -323,22 +98,6 @@ struct Capitalist : Agent {
         }
     }
 
-    Vec3f arrive(Vec3f& target){
-        Vec3f desired = target - pose.pos();
-        float d = desired.mag();
-        desired.normalize();
-        if (d < target_senseRadius){
-            float m = MapValue(d, 0, target_senseRadius, minspeed, maxspeed);
-            desired *= m;
-        } else {
-            desired *= maxspeed;
-        }
-        Vec3f steer = desired - velocity;
-        if (steer.mag() > maxforce){
-            steer.normalize(maxforce);
-        }
-        return steer;
-    }
     void draw(Graphics& g){
         g.pushMatrix();
         g.translate(pose.pos());
@@ -348,6 +107,332 @@ struct Capitalist : Agent {
         g.popMatrix();
     }
 };
+
+
+struct Miner : Agent {
+    int mesh_Nv;
+    Vec3f movingTarget;
+    Vec3f temp_pos;
+
+    bool resourcePointFound;
+    float distToClosestNRP;
+    float distToClosestResource;
+    int id_ClosestNRP;
+    int id_ClosestResource;
+    float searchResourceForce;
+    float collectResourceForce;
+    float sensitivityNRP;
+    float sensitivityResource;
+    float pickingRange;
+    float sensitivityCapitalist;
+    float desireLevel;
+    float separateForce;
+    float resourceHoldings;
+    int collectTimer;
+    int tradeTimer;
+    float distToClosestCapitalist;
+    int id_ClosestCapitalist;
+    bool capitalistNearby;
+    int desireChangeRate;
+    float businessDistance;
+    Mesh resource;
+
+    Miner(){
+        maxAcceleration = 1;
+        mass = 1.0;
+        maxspeed = 0.3;
+        minspeed = 0.1;
+        maxforce = 0.03;
+        initialRadius = 5;
+        target_senseRadius = 10.0;
+        desiredseparation = 3.0f;
+        acceleration = Vec3f(0,0,0);
+        velocity = Vec3f(0,0,0);
+        pose.pos() = r();
+        temp_pos = pose.pos();
+        pose.pos() = pose.pos() * (NaturalRadius - FactoryRadius) + temp_pos.normalize(FactoryRadius + CirclePadding * 2.0);
+        bioClock = 0;
+        movingTarget = r();
+        desireChangeRate = r_int(60, 90);
+
+        //relation to resource point
+        distToClosestNRP = 120.0f;
+        distToClosestResource = 120.0f;
+        id_ClosestNRP = 0;
+        id_ClosestResource = 0;
+        resourcePointFound = false;
+        searchResourceForce = 1.0;
+        collectResourceForce = 1.0;
+        sensitivityNRP = 30.0;
+        sensitivityResource = 8.0;
+        pickingRange = 5.0;
+        collectTimer = 0;
+
+        //relation to capitalist
+        distToClosestCapitalist = 120.0f;
+        id_ClosestCapitalist = 0;
+        sensitivityCapitalist = 160.0f;
+        capitalistNearby = false;
+        businessDistance = 4.0f;
+        tradeTimer = 0;
+
+        //capitals
+        resourceHoldings = 0.0;
+        capitalHoldings = 30.0;
+        poetryHoldings = 0.0;
+
+        //social behaviors
+        desireLevel = 0.5;
+        separateForce = 1.5;
+
+        //draw body
+        scaleFactor = 0.3;
+        mesh_Nv = addCone(body, capitalHoldings / 30.0, Vec3f(0,0,capitalHoldings / 30.0 * 3));
+        for(int i=0; i<mesh_Nv; ++i){
+			float f = float(i)/mesh_Nv;
+			body.color(HSV(f*0.05,0.9,1));
+		}
+        addCube(resource, 4);
+        resource.generateNormals();
+        body.decompress();
+        body.generateNormals();
+    }
+
+    void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others, vector<Capitalist>& capitalists){
+        if (resourceHoldings < 12){
+            //resource mining
+            senseResourcePoints(nrps);
+            if (resourcePointFound == true){
+                separateForce = 1.5;
+                if (distToClosestNRP > sensitivityResource){
+                    seekResourcePoint(nrps);
+                } else if (distToClosestNRP < sensitivityResource && distToClosestResource >= 0) {
+                    collectResource(nrps);
+                    if (distToClosestResource < pickingRange){
+                        collectTimer ++;
+                    }
+                }
+            } else {
+                separateForce = 0.3;
+                inherentDesire(desireLevel, FactoryRadius, NaturalRadius, desireChangeRate);
+                facingToward(movingTarget);
+            } 
+
+            if (collectTimer >= 120){
+                resourceHoldings += 1;
+                collectTimer = 0;
+            }
+
+        } else if (resourceHoldings >= 12) {
+            //find capitalist for a trade
+            resourcePointFound = false;
+            senseCapitalists(capitalists);
+            if (capitalistNearby){
+                if (distToClosestCapitalist > businessDistance){
+                    seekCapitalist(capitalists);
+                } else if (distToClosestCapitalist <= businessDistance && distToClosestCapitalist >= 0){
+                    exchangeResource(capitalists);
+                    tradeTimer ++;
+                }
+            } else {
+                inherentDesire(desireLevel, FactoryRadius, NaturalRadius, desireChangeRate);
+                facingToward(movingTarget);
+            }
+            if (tradeTimer == 60){
+                resourceHoldings = 0;
+                tradeTimer = 0;
+            }
+
+        }
+          
+        // cout << resourcePointFound << "found??" << endl;
+        // cout << distToClosestNRP << " dist to closeset nrp"<< endl;
+        // cout<< id_ClosestNRP << "  NRP" << endl;
+        // cout << id_ClosestResource << " resource" << endl;
+
+        //default behaviors
+        Vec3f sep(separate(others));
+        sep *= separateForce;
+        applyForce(sep);     
+
+        borderDetect();
+        update();
+    }
+    void senseResourcePoints(vector<Natural_Resource_Point>& nrps){
+        float min = 999;
+        int min_id = 0;     
+        for (int i = 0; i < nrps.size(); i++){
+            if (!nrps[i].drained()){
+                Vec3f dist_difference = pose.pos() - nrps[i].position;
+                float dist = dist_difference.mag();
+                if (dist < min){
+                    min = dist;
+                    min_id = i;
+                    //update universal variable for other functions to use
+                    distToClosestNRP = min;
+                    id_ClosestNRP = min_id;
+                }
+            }
+        }
+        if (distToClosestNRP < sensitivityNRP){
+            resourcePointFound = true;
+        } else {
+            resourcePointFound = false;
+        }
+    }
+    void senseCapitalists(vector<Capitalist>& capitalists){
+        int min_resources = 9999;
+        int max_capitals = 0;
+        int min_resource_id = 0;
+        int max_rich_id = 0;
+        for (int i = 0; i < capitalists.size(); i++){
+            if (!capitalists[i].bankrupted()){
+
+                //find the one needs resource
+                if (capitalists[i].resourceHoldings < min_resources){
+                    min_resources = capitalists[i].resourceHoldings;
+                    min_resource_id = i;
+                }
+                //also find the one who is richest
+                if (capitalists[i].capitalHoldings > max_capitals){
+                    max_capitals = capitalists[i].capitalHoldings;
+                    max_rich_id = i;
+                }
+            }
+        }
+        Vec3f dist_difference = pose.pos() - capitalists[min_resource_id].pose.pos();
+        float dist_resource = dist_difference.mag();
+        Vec3f dist_difference_2 = pose.pos() - capitalists[max_rich_id].pose.pos();
+        float dist_rich = dist_difference_2.mag();
+        
+        if (dist_resource > dist_rich){
+            distToClosestCapitalist = dist_resource;
+            id_ClosestCapitalist = min_resource_id;
+        } else if (dist_resource <= dist_rich){
+            distToClosestCapitalist = dist_rich;
+            id_ClosestCapitalist = max_rich_id;
+        }
+        // cout << min_resource_id << " who is the poorest" << endl;
+        // cout << capitalists[min_resource_id].resourceHoldings << " how much poor" << endl;
+        // cout << max_rich_id << " who is richest" << endl;
+        // cout << capitalists[max_rich_id].capitalHoldings << " how rich" << endl;
+
+        if (distToClosestCapitalist < sensitivityCapitalist){
+            capitalistNearby = true;
+        } else {
+            capitalistNearby = false;
+        }
+    }
+    void seekResourcePoint(vector<Natural_Resource_Point>& nrps){
+        if (!nrps[id_ClosestNRP].drained()){
+            Vec3f skNRP(seek(nrps[id_ClosestNRP].position));
+            skNRP *= searchResourceForce;
+            applyForce(skNRP);
+            facingToward(nrps[id_ClosestNRP].position);
+        } 
+    }
+    void seekCapitalist(vector<Capitalist>& capitalists){
+        if (!capitalists[id_ClosestCapitalist].bankrupted()){
+            Vec3f skCP(seek(capitalists[id_ClosestCapitalist].pose.pos()));
+            skCP *= 1.0;
+            applyForce(skCP);
+            Vec3f t = capitalists[id_ClosestCapitalist].pose.pos();
+            facingToward(t);
+        }
+    }
+    void exchangeResource(vector<Capitalist>& capitalists){
+        Vec3f t = capitalists[id_ClosestCapitalist].pose.pos();
+        Vec3f arCP(arrive(t));
+        arCP *= 1.0;
+        applyForce(arCP);
+    }
+
+    void collectResource(vector<Natural_Resource_Point>& nrps){
+        float min = 9999;
+        int min_id = 0;
+        if (!nrps[id_ClosestNRP].drained()){
+            for (int i = nrps[id_ClosestNRP].resources.size() - 1; i >= 0; i--){
+                if (!nrps[id_ClosestNRP].resources[i].isPicked){
+                    Vec3f dist_difference = pose.pos() - nrps[id_ClosestNRP].resources[i].position;
+                    double dist = dist_difference.mag();
+                    if (dist < min){
+                        min = dist;
+                        min_id = i;
+                        id_ClosestResource = min_id;
+                        distToClosestResource = dist;
+                    }
+                }
+            }
+            Vec3f collectNR(seek(nrps[id_ClosestNRP].resources[min_id].position));
+            collectNR *= collectResourceForce;
+            applyForce(collectNR);
+            facingToward(nrps[id_ClosestNRP].resources[min_id].position);
+        } 
+    }
+    void findPoems(){
+        //30% probability
+        if (rnd::prob(0.3)) {
+            //find poems
+        };
+    }
+    Vec3f separate(vector<Miner>& others){
+        Vec3f sum;
+        int count = 0;
+        for (Miner m : others){
+            Vec3f difference = pose.pos() - m.pose.pos();
+            float d = difference.mag();
+            if ((d > 0) && (d<desiredseparation)){
+                Vec3f diff = difference.normalize();
+                sum += diff;
+                count ++;
+            }
+        }
+        if (count > 0){
+            sum /= count;
+            sum.mag(maxspeed);
+            Vec3f steer = sum - velocity;
+            if (steer.mag() > maxforce){
+                steer.normalize(maxforce);
+            }
+            return steer;
+        } else {
+            return Vec3f(0,0,0);
+        }
+    }
+    
+    void draw(Graphics& g){
+        g.pushMatrix();
+        g.translate(pose.pos());
+        g.rotate(pose.quat());
+        g.scale(scaleFactor);
+        if (resourceHoldings >= 12){ g.draw(resource);}
+        g.draw(body);
+        g.popMatrix();
+    }
+
+};
+
+struct Worker : Agent {
+    
+    Worker(){
+
+    }
+
+    void seekFactory(const vector<Factory>& f){
+
+    }
+
+    void findPoems(){
+        //30% probability
+        if (rnd::prob(0.3)) {
+            //find poems
+        };
+    }
+
+
+};
+
+
 
 #include "locations.hpp"
 

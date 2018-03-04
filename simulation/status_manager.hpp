@@ -37,13 +37,12 @@ struct EventManager{
         }
 
         for (int i = ms.size() - 1; i >=0; i--){
-            if (ms[i].resourcePointFound && ms[i].distToClosestResource < 5.0){
+            if (ms[i].resourcePointFound && ms[i].distToClosestResource < 6.0){
                 //nrps_approached[ms[i].id_ClosestNRP] = true;
                 //nrps_resources_collecting[ms[i].id_ClosestResource] = true;
                 nrps[ms[i].id_ClosestNRP].resource_picked[ms[i].id_ClosestResource] = true;
             }
         }
-
     }
     
 };

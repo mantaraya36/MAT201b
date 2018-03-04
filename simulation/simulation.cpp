@@ -12,65 +12,68 @@ struct MyApp : App {
     Material material;
     Light light;
 
-
     //initial location managers
-    Metropolis mps;
-    Factories fs;
-    NRPs nrps; //manager for Natural Resource Points
+    Metropolis metropolis;
+    Factories factories;
+    NRPs NaturalResourcePts; //manager for Natural Resource Points
 
     //initial agent managers
-    Capitalist_Entity cs;
-    Miner_Group ms;
+    Capitalist_Entity capitalists;
+    Miner_Group miners;
 
     //event manager
-    EventManager eventManager;
+    //EventManager eventManager;
 
     MyApp() {
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 80);             // place the viewer
         lens().far(400);                 // set the far clipping plane
-        background(Color(0.75));
+        background(Color(0.4));
         initWindow();
         initAudio(44100);
 
         //generate factories according to number of capitalists
-        fs.generate(cs);
+        factories.generate(capitalists);
     }
     void onAnimate(double dt) {
         //locations
-        mps.run();
-        fs.run();
-        nrps.run();
+        metropolis.run();
+        factories.run();
+        NaturalResourcePts.run();
 
         //agents
-        cs.run(mps.mbs);
-        ms.run(nrps.nrps, ms.ms);
+        capitalists.run(metropolis.mbs);
+        miners.run(NaturalResourcePts.nrps, miners.ms, capitalists.cs);
         
         //eventmanager
-        eventManager.updateCollectingStatus(ms.ms);
-        nrps.PickEventHandler(eventManager);
+        //eventManager.updateCollectingStatus(miners.ms);
+        //NaturalResourcePts.PickEventHandler(eventManager);
+
+        //interaction between groups
+        NaturalResourcePts.checkMinerPick(miners.ms);
+        capitalists.getResource(miners.ms);
        
         //locational behaviors
-        fs.drawLinks(cs);
+        factories.drawLinks(capitalists);
 
         //debug
-         cout << nrps.nrps[0].drained() << " drained?" << endl;
+        //  cout << nrps.nrps[0].drained() << " drained?" << endl;
         // cout << nrps.nrps[0].regeneration_rate << " regen rate" << endl;
-        cout << nrps.nrps[0].afterDrainTimer << " timer" << endl;
+        // cout << nrps.nrps[0].afterDrainTimer << " timer" << endl;
         // cout << nrps.nrps[0].resources[0].isPicked << "  r0 is picked?" << endl;
         // cout << nrps.nrps[0].resources[0].beingPicked << "  r0 being picked?" << endl;
-        cout << nrps.nrps[0].pickCount << "  pickcount?" << endl;
-        //cout << nrps.nrps[0].resources.size() << "size = count = " << nrps.nrps[0].pickCount << endl;
+        // cout << nrps.nrps[0].pickCount << "  pickcount?" << endl;
+        // cout << nrps.nrps[0].resources.size() << "size = count = " << nrps.nrps[0].pickCount << endl;
     }
     void onDraw(Graphics& g) {
         material();
         light();
-        mps.draw(g);
-        fs.draw(g);
-        nrps.draw(g);
-
-        cs.draw(g);
-        ms.draw(g);
+        //draw all the entities
+        metropolis.draw(g);
+        factories.draw(g);
+        NaturalResourcePts.draw(g);
+        capitalists.draw(g);
+        miners.draw(g);
     }
     void onSound(AudioIOData& io) {
         while (io()) {
@@ -80,7 +83,7 @@ struct MyApp : App {
     }
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {
         switch(k.key()){
-            case '1': fs.drawingLinks = !fs.drawingLinks; break;
+            case '1': factories.drawingLinks = !factories.drawingLinks; break;
             case '2': break;
             case '3': break;
             case '4': break;

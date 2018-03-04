@@ -162,6 +162,7 @@ struct Natural_Resource_Point : Location{
     int pickCount;
     int maxResourceNum;
     int r_index;
+    int initResourceNum;
 
     vector<Resource> resources;
     vector<bool> drain_check;
@@ -187,7 +188,7 @@ struct Natural_Resource_Point : Location{
 
         //respawn and drain
         respawn_timer = 0;
-        regeneration_rate = 0.35f; //based on 60fps, if 1, then every second, if 2, then half a second
+        regeneration_rate = 0.75f; //based on 60fps, if 1, then every second, if 2, then half a second
         pickCount = 0;
         maxResourceNum = 5;
         r_index = 0;
@@ -199,10 +200,17 @@ struct Natural_Resource_Point : Location{
             r.position = position + r.position * resource_spawn_radius;
             r.isPicked = true;
         }
+        
         //drain check stuff
         drain_check.resize(maxResourceNum);
         for (int i = drain_check.size() - 1; i >= 0; i--){
             drain_check[i] = true;
+        }
+
+        initResourceNum = 5;
+        for (int i = 0; i < initResourceNum; i ++){
+            resources[i].isPicked = false;
+             drain_check[i] = false;
         }
         afterDrainTimer = 0;
 
@@ -213,7 +221,13 @@ struct Natural_Resource_Point : Location{
             respawn_timer++;
 
             if (respawn_timer % (int)floorf(60.0f / regeneration_rate) == 0){
+                int guard_count = 0;
                 while (resources[r_index].beingPicked){
+                    guard_count ++;
+                    if (guard_count > maxResourceNum * 2){
+                        cout << "guarded!" << endl;
+                        break;
+                    }
                     if (r_index < maxResourceNum - 1){
                         r_index += 1;
                     } else if (r_index >= maxResourceNum - 1){
@@ -227,9 +241,6 @@ struct Natural_Resource_Point : Location{
                 } else if (r_index >= maxResourceNum - 1){
                         r_index = 0;
                 }
-                // Resource r;
-                // r.position = position + r.position * resource_spawn_radius;
-                // resources.push_back(r);
             }
 
             //don't need to touch here
@@ -241,14 +252,12 @@ struct Natural_Resource_Point : Location{
             afterDrainTimer ++;
             if (afterDrainTimer == 720){
                 int r = r_int(0, maxResourceNum);
-                cout << r << " = index of resources generated" << endl;
+                //cout << r << " = index of resources generated" << endl;
                 resources[r].isPicked = false;
                 drain_check[r] = false;
                 afterDrainTimer = 0;
             }
-            
         }
-        
     }
 
     void update_resource(){
@@ -271,11 +280,6 @@ struct Natural_Resource_Point : Location{
         }
     }
     bool drained(){
-        // if (resources.size() == 0){
-        //     return true;
-        // } else {
-        //     return false;
-        // }
         pickCount = 0;
         for (int i = 0; i < resources.size(); i++){
             if (drain_check[i]){

@@ -99,7 +99,7 @@ struct NRPs {
     vector<Natural_Resource_Point> nrps;
     int initial_num;
     NRPs(){
-        initial_num = 15;
+        initial_num = 20;
         nrps.resize(initial_num);
     }
 
@@ -108,6 +108,20 @@ struct NRPs {
             for (int j = nrps[i].resources.size() - 1; j >=0; j--){
                     nrps[i].resources[j].beingPicked = eventManager.nrps[i].resource_picked[j];           
             }
+        }
+    }
+    void checkMinerPick(vector<Miner>& miners){
+        for (int k = nrps.size() - 1; k >= 0; k --){
+            Natural_Resource_Point& nrp = nrps[k];
+            for (int i = 0; i < nrp.resources.size(); i ++){
+                nrp.resources[i].beingPicked = false;
+                
+            }
+        }
+        for (int j = 0; j < miners.size(); j ++){
+                if (miners[j].distToClosestResource < miners[j].pickingRange && miners[j].resourcePointFound == true){
+                    nrps[miners[j].id_ClosestNRP].resources[miners[j].id_ClosestResource].beingPicked = true;
+            } 
         }
     }
     
