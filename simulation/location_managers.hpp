@@ -67,21 +67,39 @@ struct Factories {
             }
         }
     }
+    void getResource(Capitalist_Entity& cs){
+        for (int i = cs.cs.size() - 1; i >= 0; i --){
+            if (cs.cs[i].resourceClock == cs.cs[i].TimeToDistribute - 1){
+                fs[i].materialStocks += cs.cs[i].resourceHoldings;
+            }
+        }
+    }
+    void checkWorkerNum(vector<Worker>& workers){
+        for (int i = fs.size() - 1; i >= 0; i --){
+            fs[i].workersWorkingNum = 0;
+        }
+        for (int i = workers.size() - 1; i >= 0; i--){
+            if (workers[i].distToClosestFactory <= workers[i].workingDistance){
+                fs[workers[i].id_ClosestFactory].workersWorkingNum += 1;
+                // if (fs[workers[i].id_ClosestFactory].workersWorkingNum <= fs[workers[i].id_ClosestFactory].workersNeededNum){
+                    
+                // }
+                //cout << fs[workers[i].id_ClosestFactory].workersWorkingNum << "workers here" << endl;
+            }
+        }
+    }
 
     void bankrupt(){
         //capitalist won't die, instead the factory dies
     }
 
-    void run(){
+    void run(Capitalist_Entity& cs){
+        getResource(cs);
         for (int i = fs.size() - 1; i >= 0; i --){
             Factory& f = fs[i];
-            //bankrupt check before update
-            if (f.operating()){
                 //rather than destroy the object, stop animating
                 //fs.erase(fs.begin() + i);
-                f.produce();
-                f.animate();
-            }
+            f.run();
         }
     }
 
@@ -95,21 +113,14 @@ struct Factories {
     }
 };
 
-struct NRPs {
+struct NaturalResourcePointsCollection {
     vector<Natural_Resource_Point> nrps;
     int initial_num;
-    NRPs(){
+    NaturalResourcePointsCollection(){
         initial_num = 20;
         nrps.resize(initial_num);
     }
 
-    void PickEventHandler(EventManager& eventManager){
-        for (int i = nrps.size() - 1; i >=0; i--){
-            for (int j = nrps[i].resources.size() - 1; j >=0; j--){
-                    nrps[i].resources[j].beingPicked = eventManager.nrps[i].resource_picked[j];           
-            }
-        }
-    }
     void checkMinerPick(vector<Miner>& miners){
         for (int k = nrps.size() - 1; k >= 0; k --){
             Natural_Resource_Point& nrp = nrps[k];
@@ -130,7 +141,6 @@ struct NRPs {
             Natural_Resource_Point& nrp = nrps[i];
             nrp.respawn_resource();
             nrp.update_resource();
-            //nrp.check_picking_status();
         }
     }
     void draw(Graphics& g){

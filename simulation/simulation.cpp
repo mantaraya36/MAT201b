@@ -15,14 +15,15 @@ struct MyApp : App {
     //initial location managers
     Metropolis metropolis;
     Factories factories;
-    NRPs NaturalResourcePts; //manager for Natural Resource Points
+    NaturalResourcePointsCollection NaturalResourcePts; //manager for Natural Resource Points
 
     //initial agent managers
     Capitalist_Entity capitalists;
     Miner_Group miners;
+    Worker_Union workers;
 
-    //event manager
-    //EventManager eventManager;
+    //market manager
+    MarketManager marketManager;
 
     MyApp() {
         light.pos(0, 0, 0);              // place the light
@@ -34,16 +35,21 @@ struct MyApp : App {
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
+        workers.initialIDNumber();
+        cout << workers.workers[3].IDNumber << endl;
     }
     void onAnimate(double dt) {
         //locations
         metropolis.run();
-        factories.run();
+        factories.run(capitalists);
+       
         NaturalResourcePts.run();
 
         //agents
         capitalists.run(metropolis.mbs);
         miners.run(NaturalResourcePts.nrps, miners.ms, capitalists.cs);
+        workers.run(factories.fs, workers.workers);
+        
         
         //eventmanager
         //eventManager.updateCollectingStatus(miners.ms);
@@ -51,13 +57,17 @@ struct MyApp : App {
 
         //interaction between groups
         NaturalResourcePts.checkMinerPick(miners.ms);
+        factories.checkWorkerNum(workers.workers);
         capitalists.getResource(miners.ms);
        
         //locational behaviors
         factories.drawLinks(capitalists);
 
         //debug
-        //  cout << nrps.nrps[0].drained() << " drained?" << endl;
+        // cout << factories.fs[0].materialStocks << "fc material" <<endl;
+        // cout << capitalists.cs[0].resourceHoldings << "cp resource" << endl;
+        // cout << capitalists.cs[0].resourceClock << "cp clock" <<endl;
+        // cout << nrps.nrps[0].drained() << " drained?" << endl;
         // cout << nrps.nrps[0].regeneration_rate << " regen rate" << endl;
         // cout << nrps.nrps[0].afterDrainTimer << " timer" << endl;
         // cout << nrps.nrps[0].resources[0].isPicked << "  r0 is picked?" << endl;
@@ -74,6 +84,7 @@ struct MyApp : App {
         NaturalResourcePts.draw(g);
         capitalists.draw(g);
         miners.draw(g);
+        workers.draw(g);
     }
     void onSound(AudioIOData& io) {
         while (io()) {
@@ -84,8 +95,8 @@ struct MyApp : App {
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {
         switch(k.key()){
             case '1': factories.drawingLinks = !factories.drawingLinks; break;
-            case '2': break;
-            case '3': break;
+            case '2': miners.drawingLinks = !miners.drawingLinks; break;
+            case '3': workers.drawingLinks = !workers.drawingLinks;break;
             case '4': break;
             case '0': nav().pos(0,0,80);nav().faceToward(Vec3f(0,0,0), 1);
         }

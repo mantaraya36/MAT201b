@@ -68,7 +68,7 @@ struct MetroBuilding : Location{
         mesh_Nv = addCube(mesh);
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
-			mesh.color(HSV(f*0.2+0.4,1,1));
+			mesh.color(HSV(f*0.6,0.3,1));
 		}
         mesh.decompress();
         mesh.generateNormals();
@@ -93,33 +93,45 @@ struct Factory : Location{
     float meshOuterRadius;
     float meshInnerRadius;
     Vec3f temp_pos;
-    float work_timer;
-    float work_speed;
     float angle1;
     float angle2;
     float rotation_speed1;
     Quatd q;
     Quatd facing_center;
+    int materialStocks;
+    bool hiring;
+    int workersNeededNum;
+    int workersWorkingNum;
+    vector<bool> openings;
+    int shutDownCountDown;
+    int hiringTimer;
     Factory(){
-        meshOuterRadius = 1.0f;
+        //drawing
+        meshOuterRadius = 1.6f;
         meshInnerRadius = 0.2f;
         scaleFactor = rnd::uniform(1.0,2.0);
         position = r();
         temp_pos = position;
         position = position * (FactoryRadius - MetroRadius) + temp_pos.normalize(MetroRadius + CirclePadding);
-        addTorus(mesh, meshInnerRadius, meshOuterRadius, r_int(4, 8), r_int(4, 8));
+        addTorus(mesh, meshInnerRadius, meshOuterRadius, r_int(3, 6), r_int(3, 6));
         mesh.generateNormals();
-        c = HSV(rnd::uniform(), 0.7, 1);
-        work_timer = 0.0f;
-        work_speed = 1.0f;
+        c = HSV(0.56, 0.3, 1);
         angle1 = 0.0f;
         angle2 = rnd::uniform(0, 360); // face toward?
         facing_center = Quatd::getRotationTo( Vec3f(q.toVectorZ().normalize()), Vec3f(Vec3f(0,0,0) - position).normalize()) * facing_center;
         rotation_speed1 = rnd::uniform(0.8,2.0);
-        working_radius = scaleFactor * meshOuterRadius; //for workers to earn wage
-    }
-    void initWorkers(){
 
+        //working stats
+        working_radius = scaleFactor * meshOuterRadius; //for workers to earn wage
+        materialStocks = r_int(5, 10);
+        workersNeededNum = floor((float)materialStocks / 5);
+        //openings.resize(workersNeededNum);
+        workersWorkingNum = 0;
+        hiring = true;
+        hiringTimer = 0;
+
+        //shutdown
+        shutDownCountDown = 2048;
     }
     void produce(){
         // work_timer += work_speed;
@@ -133,9 +145,46 @@ struct Factory : Location{
             angle1 = 0;
         }
     }
+    void openPositions(){
+        workersNeededNum = floor((float)materialStocks / 5);
+        //openings.resize(workersNeededNum);
+        if (workersWorkingNum >= workersNeededNum){
+            hiring = false;
+        } else {
+            hiring = true;
+        }
+        hiringTimer ++;
+        if (hiringTimer == 240){
+            materialStocks -= 1;
+            cout << materialStocks << endl;
+            hiringTimer = 0;
+        }
+        if (materialStocks <= 5){
+            materialStocks = 5;
+        }
+        
+    }
+    void run(){
+        if (materialStocks > 0){
+            openPositions();
+        } else {
+            hiring = false;
+            shutDownCountDown--;
+            if (shutDownCountDown <= 0){
+                shutDownCountDown = 0;
+            }
+        } 
+
+        produce();
+        animate();
+    }
 
     bool operating(){
-        return true;
+        if (shutDownCountDown <= 0){
+            return false;
+        } else {
+            return true;
+        }
     }
 
     void draw(Graphics& g) {
@@ -145,7 +194,9 @@ struct Factory : Location{
         g.rotate(angle1, 0,0,1);
         g.scale(scaleFactor);
         g.color(c);
-        g.draw(mesh);
+        if (operating()){
+            g.draw(mesh);
+        }
         g.popMatrix();
     }
 };

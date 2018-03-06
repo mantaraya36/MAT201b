@@ -20,6 +20,8 @@ struct Capitalist : Agent {
     Vec3f movingTarget;
     int desireChangeRate;
     int resourceHoldings;
+    int TimeToDistribute;
+    int resourceClock;
 
     Capitalist(){
         //initial params
@@ -39,9 +41,12 @@ struct Capitalist : Agent {
         desireChangeRate = r_int(50, 150);
 
         //capitals
-        resourceHoldings = r_int(1, 20);
+        resourceHoldings = r_int(5, 25);
         capitalHoldings = r_int(30, 90);
         poetryHoldings = 0.0;
+
+        //factory relation
+        TimeToDistribute = 720;
 
         //draw body
         scaleFactor = 0.3; //richness?
@@ -54,16 +59,29 @@ struct Capitalist : Agent {
         body.generateNormals();
     }
     void run(vector<MetroBuilding>& mbs){
-        //flocking behaviors
+        
+        
+        //basic behaviors
         Vec3f ahb(avoidHittingBuilding(mbs));
         ahb *= 0.8;
         applyForce(ahb);
+
+        //factory related
+        distributeResources();
 
         //default behaviors
         borderDetect();
         inherentDesire(0.5, 0, MetroRadius, desireChangeRate);
         facingToward(movingTarget);
         update();
+    }
+    void distributeResources(){
+        resourceClock ++;
+        //every 12 seconds, half a day, distribute resource
+        if (resourceClock == TimeToDistribute) {
+            resourceHoldings = 0;
+            resourceClock = 0;
+        }
     }
 
     void learnPoems(){
@@ -135,6 +153,7 @@ struct Miner : Agent {
     bool capitalistNearby;
     int desireChangeRate;
     float businessDistance;
+    int unloadTimeCost;
     Mesh resource;
 
     Miner(){
@@ -165,7 +184,7 @@ struct Miner : Agent {
         collectResourceForce = 1.0;
         sensitivityNRP = 30.0;
         sensitivityResource = 8.0;
-        pickingRange = 5.0;
+        pickingRange = 2.0;
         collectTimer = 0;
 
         //relation to capitalist
@@ -175,13 +194,14 @@ struct Miner : Agent {
         capitalistNearby = false;
         businessDistance = 4.0f;
         tradeTimer = 0;
+        unloadTimeCost = 30;
 
         //capitals
         resourceHoldings = 0.0;
         capitalHoldings = 30.0;
         poetryHoldings = 0.0;
 
-        //social behaviors
+        //human nature
         desireLevel = 0.5;
         separateForce = 1.5;
 
@@ -238,8 +258,9 @@ struct Miner : Agent {
                 inherentDesire(desireLevel, FactoryRadius, NaturalRadius, desireChangeRate);
                 facingToward(movingTarget);
             }
-            if (tradeTimer == 60){
+            if (tradeTimer == unloadTimeCost){
                 resourceHoldings = 0;
+                //capitalHoldings += 
                 tradeTimer = 0;
             }
 
@@ -312,10 +333,6 @@ struct Miner : Agent {
             distToClosestCapitalist = dist_rich;
             id_ClosestCapitalist = max_rich_id;
         }
-        // cout << min_resource_id << " who is the poorest" << endl;
-        // cout << capitalists[min_resource_id].resourceHoldings << " how much poor" << endl;
-        // cout << max_rich_id << " who is richest" << endl;
-        // cout << capitalists[max_rich_id].capitalHoldings << " how rich" << endl;
 
         if (distToClosestCapitalist < sensitivityCapitalist){
             capitalistNearby = true;
@@ -413,20 +430,210 @@ struct Miner : Agent {
 };
 
 struct Worker : Agent {
-    
+    int mesh_Nv;
+    Vec3f temp_pos;
+    Vec3f workTarget;
+    int desireChangeRate;
+    float distToClosestFactory;
+    int id_ClosestFactory;
+    bool FactoryFound;
+    float sensitivityFactory;
+    float separateForce;
+    float diligency;
+    float mood;
+    float workingDistance;
+    float desireLevel;
+    bool jobHunting;
+    bool positionSecured;
+    int IDNumber;
+    int patienceLimit;
+    int patienceTimer;
     Worker(){
+        maxAcceleration = 1;
+        mass = 1.0;
+        maxspeed = 0.3;
+        minspeed = 0.1;
+        maxforce = 0.03;
+        initialRadius = 5;
+        target_senseRadius = 10.0;
+        desiredseparation = 3.0f;
+        acceleration = Vec3f(0,0,0);
+        velocity = Vec3f(0,0,0);
+        pose.pos() = r();
+        temp_pos = pose.pos();
+        pose.pos() = pose.pos() * (FactoryRadius - MetroRadius) + temp_pos.normalize(MetroRadius);
+        bioClock = 0;
+        movingTarget = r();
+        workTarget = r();
 
+        //human nature
+        desireLevel = 0.5;
+        desireChangeRate = r_int(60, 60); //60 ~ 120
+        diligency = rnd::uniform(0.7, 1.4); //0.7 ~ 1.4
+        mood = r_int(30, 90);
+        IDNumber = 0;
+        patienceLimit = r_int(30, 120);
+        patienceTimer = 0;
+
+        //relation to factory
+        distToClosestFactory = 200;
+        id_ClosestFactory = 0;
+        sensitivityFactory = 90;
+        workingDistance = 8;
+        jobHunting = true;
+        positionSecured = false;
+
+        FactoryFound = false;
+
+        //capitals
+        capitalHoldings = 30.0;
+        poetryHoldings = 0.0;
+
+        //draw body
+        scaleFactor = 0.3;
+        mesh_Nv = addCone(body, capitalHoldings / 30.0, Vec3f(0,0,capitalHoldings / 30.0 * 3));
+        for(int i=0; i<mesh_Nv; ++i){
+			float f = float(i)/mesh_Nv;
+			body.color(HSV(f*0.65,0.9,1));
+		}
+        body.decompress();
+        body.generateNormals();
     }
+    void run(vector<Factory>& fs, vector<Worker>& others){
+        if (jobHunting){
+            senseFactory(fs);
+        }
+        // cout << "seekFC  " << fs[id_ClosestFactory].position <<endl;
+        // cout << "work  " << fs[id_ClosestFactory].position <<endl;
+        if (FactoryFound){
+            if (distToClosestFactory > workingDistance){
+                seekFactory(fs);
+                separateForce = 0.3;               
+            } else if (distToClosestFactory <= workingDistance && distToClosestFactory >= 0){
+                work(diligency, mood, fs[id_ClosestFactory].meshOuterRadius, fs);  
+                if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
+                    jobHunting = false;
+                    //earn salary here!!
+                } else {
+                    //think about jobhunting
+                    patienceTimer += 1;
+                    if (patienceTimer == patienceLimit){
+                        jobHunting = true;
+                        patienceTimer = 0;
+                    }
+                    
+                }
+            }
+        } else {
+            inherentDesire(desireLevel, MetroRadius, FactoryRadius, desireChangeRate);
+            facingToward(movingTarget);
+        }
+        //default behaviors
+        Vec3f sep(separate(others));
+        sep *= separateForce;
+        applyForce(sep);     
 
-    void seekFactory(const vector<Factory>& f){
-
+        borderDetect();
+        update();
     }
+    void senseFactory(vector<Factory>& fs){
+        float min = 999;
+        int min_id = 0;
+        int count = 0;     
+        for (int i = 0; i < fs.size(); i++){
+            if (fs[i].operating() && fs[i].hiring){
+                count += 1;
+                Vec3f dist_difference = pose.pos() - fs[i].position;
+                float dist = dist_difference.mag();
+                if (dist < min){
+                    min = dist;
+                    min_id = i;
+                    distToClosestFactory = min;
+                    id_ClosestFactory = min_id;
+                }
+            }
+        }
+        cout << count << endl;
+        cout << "depression?" << endl;
+        if (distToClosestFactory < sensitivityFactory){
+            FactoryFound = true;
+        } else {
+            FactoryFound = false;
+        }
+    }
+    void seekFactory(vector<Factory>& fs){
+        if (fs[id_ClosestFactory].operating()){
+            Vec3f skFS(seek(fs[id_ClosestFactory].position));
+            skFS *= 1.0;
+            applyForce(skFS);
+            Vec3f t = fs[id_ClosestFactory].position;
+            facingToward(t);
+            
+        }
+    }
+    // void checkOpenings(vector<Factory>& fs){
+    //     if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
+    //         positionSecured = true;
+    //         jobHunting = false;
+    //     } else {
+    //         positionSecured = false;
+    //     }
+    // }
+    void work(float diligency, int mood, float radius, vector<Factory>& fs){
+        if (bioClock == 0){
+            workTarget = r() * radius + fs[id_ClosestFactory].position;
+        }
+        if (bioClock % mood == 0) {
+            workTarget = r() * radius + fs[id_ClosestFactory].position;
+        }
+        if (bioClock >= mood * 12 - 1){
+            bioClock = 0;
+            mood = r_int(30, 90);
+        }
+        bioClock ++;
 
+        Vec3f workAround(seek(workTarget));
+        workAround *= diligency;
+        applyForce(workAround);
+        facingToward(workTarget);
+    }
     void findPoems(){
         //30% probability
         if (rnd::prob(0.3)) {
             //find poems
         };
+    }
+    Vec3f separate(vector<Worker>& others){
+        Vec3f sum;
+        int count = 0;
+        for (Worker w : others){
+            Vec3f difference = pose.pos() - w.pose.pos();
+            float d = difference.mag();
+            if ((d > 0) && (d < desiredseparation)){
+                Vec3f diff = difference.normalize();
+                sum += diff;
+                count ++;
+            }
+        }
+        if (count > 0){
+            sum /= count;
+            sum.mag(maxspeed);
+            Vec3f steer = sum - velocity;
+            if (steer.mag() > maxforce){
+                steer.normalize(maxforce);
+            }
+            return steer;
+        } else {
+            return Vec3f(0,0,0);
+        }
+    }
+    void draw(Graphics& g){
+        g.pushMatrix();
+        g.translate(pose.pos());
+        g.rotate(pose.quat());
+        g.scale(scaleFactor);
+        g.draw(body);
+        g.popMatrix();
     }
 
 
