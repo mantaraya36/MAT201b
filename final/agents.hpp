@@ -515,7 +515,7 @@ struct Worker : Agent {
                     jobHunting = false;
                     //earn salary here!!
                 } else {
-                    //think about jobhunting
+                    //think about jobhunting, while waiting for other people to opt out first
                     patienceTimer += 1;
                     if (patienceTimer == patienceLimit){
                         jobHunting = true;
@@ -554,7 +554,7 @@ struct Worker : Agent {
             }
         }
         cout << count << endl;
-        cout << "depression?" << endl;
+        cout << "depression?" << endl; // sense capitalist and protest for wage
         if (distToClosestFactory < sensitivityFactory){
             FactoryFound = true;
         } else {

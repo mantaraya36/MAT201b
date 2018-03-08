@@ -84,6 +84,7 @@ struct MyApp : App {
         NaturalResourcePts.draw(g);
         capitalists.draw(g);
         miners.draw(g);
+         
         workers.draw(g);
     }
     void onSound(AudioIOData& io) {
