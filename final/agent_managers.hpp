@@ -58,18 +58,12 @@ struct Worker_Union{
     Worker operator[] (const int index) const{
         return workers[index];
     }
-    void run(vector<Factory>& fs, vector<Worker>& others){
+    void run(vector<Factory>& fs, vector<Worker>& others, vector<Capitalist>& capitalist){
         for (int i = workers.size() - 1; i >= 0; i --){
             Worker& w = workers[i];
-            w.run(fs, others);
+            w.run(fs, others, capitalist);
         }
         visualize(fs);
-    }
-    void initialIDNumber(){
-        for (int i = 0; i < workers.size(); i ++){
-            Worker& w = workers[i];
-            w.IDNumber = i;
-        }
     }
     void visualize(vector<Factory>& fs){
         if (drawingLinks){
@@ -109,7 +103,7 @@ struct Miner_Group{
     bool drawingLinks;
 
     Miner_Group(){
-        initial_num = 50;
+        initial_num = 60;
         ms.resize(initial_num);
         lines.resize(ms.size());
         drawingLinks = true;

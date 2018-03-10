@@ -40,6 +40,7 @@ struct Factories {
     vector<Line> lines;
     int initial_num;
     bool drawingLinks;
+    float resourceUnitPrice;
     Factories(){
         drawingLinks = true;
         // initial_num = 30;

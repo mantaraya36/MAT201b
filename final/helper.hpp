@@ -13,6 +13,8 @@ float MapValue(float x, float in_min, float in_max, float out_min, float out_max
 //random int, span doesn't include span
 int r_int(int init, int span){
     int v = rand() % span + init;
+    //int v = rand_r(12) % span + init; set the seed
+
     return v;
 }
 

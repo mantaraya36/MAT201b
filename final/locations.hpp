@@ -98,13 +98,15 @@ struct Factory : Location{
     float rotation_speed1;
     Quatd q;
     Quatd facing_center;
-    int materialStocks;
+    float materialStocks;
     bool hiring;
     int workersNeededNum;
     int workersWorkingNum;
     vector<bool> openings;
     int shutDownCountDown;
-    int hiringTimer;
+    int produceTimer;
+    float produceRate;
+    float grossProfits;
     Factory(){
         //drawing
         meshOuterRadius = 1.6f;
@@ -123,21 +125,31 @@ struct Factory : Location{
 
         //working stats
         working_radius = scaleFactor * meshOuterRadius; //for workers to earn wage
-        materialStocks = r_int(5, 10);
-        workersNeededNum = floor((float)materialStocks / 5);
+        materialStocks = r_int(10, 5);
+        workersNeededNum = ceil((float)materialStocks / 6);
         //openings.resize(workersNeededNum);
         workersWorkingNum = 0;
         hiring = true;
-        hiringTimer = 0;
+        produceTimer = 0;
+        produceRate = 0.5;
+        grossProfits = 0;
 
         //shutdown
-        shutDownCountDown = 2048;
+        shutDownCountDown = 240;
     }
     void produce(){
-        // work_timer += work_speed;
-        // if (work_timer > 360.0 ) {
-        //     work_speed = 0;
-        // }
+        produceTimer ++;
+        if (produceTimer % (int)floorf(60.0f / produceRate) == 0){
+            materialStocks -= 1;
+            grossProfits += 12; //unitprice * 6
+            //cout << materialStocks << endl;
+        }
+        if (produceTimer >= (int)floorf(60.0f / produceRate) * 36 - 1 ){
+            produceTimer = 0;
+        }
+        if (materialStocks <= 0){
+            materialStocks = 0;
+        }
     }
     void animate(){
         angle1 += rotation_speed1;
@@ -153,30 +165,24 @@ struct Factory : Location{
         } else {
             hiring = true;
         }
-        hiringTimer ++;
-        if (hiringTimer == 240){
-            materialStocks -= 1;
-            cout << materialStocks << endl;
-            hiringTimer = 0;
-        }
-        if (materialStocks <= 5){
-            materialStocks = 5;
-        }
-        
     }
     void run(){
         if (materialStocks > 0){
             openPositions();
+            produce();
+            animate();
+            shutDownCountDown = 240;
         } else {
             hiring = false;
             shutDownCountDown--;
             if (shutDownCountDown <= 0){
                 shutDownCountDown = 0;
+            } else {
+                animate();
             }
         } 
 
-        produce();
-        animate();
+        
     }
 
     bool operating(){
@@ -194,9 +200,7 @@ struct Factory : Location{
         g.rotate(angle1, 0,0,1);
         g.scale(scaleFactor);
         g.color(c);
-        if (operating()){
-            g.draw(mesh);
-        }
+        g.draw(mesh);
         g.popMatrix();
     }
 };

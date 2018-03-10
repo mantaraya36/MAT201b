@@ -35,8 +35,7 @@ struct MyApp : App {
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
-        workers.initialIDNumber();
-        cout << workers.workers[3].IDNumber << endl;
+        marketManager.statsInit(capitalists, workers, miners);
     }
     void onAnimate(double dt) {
         //locations
@@ -48,12 +47,11 @@ struct MyApp : App {
         //agents
         capitalists.run(metropolis.mbs);
         miners.run(NaturalResourcePts.nrps, miners.ms, capitalists.cs);
-        workers.run(factories.fs, workers.workers);
+        workers.run(factories.fs, workers.workers, capitalists.cs);
         
         
         //eventmanager
-        //eventManager.updateCollectingStatus(miners.ms);
-        //NaturalResourcePts.PickEventHandler(eventManager);
+        marketManager.populationMonitor(capitalists, workers,miners);
 
         //interaction between groups
         NaturalResourcePts.checkMinerPick(miners.ms);

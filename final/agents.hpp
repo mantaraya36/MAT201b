@@ -154,6 +154,8 @@ struct Miner : Agent {
     int desireChangeRate;
     float businessDistance;
     int unloadTimeCost;
+    float collectRate;
+    int maxLoad;
     Mesh resource;
 
     Miner(){
@@ -186,6 +188,8 @@ struct Miner : Agent {
         sensitivityResource = 8.0;
         pickingRange = 2.0;
         collectTimer = 0;
+        collectRate = 0.5;
+        maxLoad = 12;
 
         //relation to capitalist
         distToClosestCapitalist = 120.0f;
@@ -219,7 +223,7 @@ struct Miner : Agent {
     }
 
     void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others, vector<Capitalist>& capitalists){
-        if (resourceHoldings < 12){
+        if (resourceHoldings < maxLoad){
             //resource mining
             senseResourcePoints(nrps);
             if (resourcePointFound == true){
@@ -230,6 +234,13 @@ struct Miner : Agent {
                     collectResource(nrps);
                     if (distToClosestResource < pickingRange){
                         collectTimer ++;
+                        if (collectTimer % (int)floorf(60.0 / collectRate) == 0){
+                            resourceHoldings += 1;
+                            //cout << collectTimer << endl;
+                        }
+                        if (collectTimer >= (int)floorf(60.0 / collectRate) * 12 - 1){
+                            collectTimer = 0;
+                        }
                     }
                 }
             } else {
@@ -238,12 +249,9 @@ struct Miner : Agent {
                 facingToward(movingTarget);
             } 
 
-            if (collectTimer >= 120){
-                resourceHoldings += 1;
-                collectTimer = 0;
-            }
+            
 
-        } else if (resourceHoldings >= 12) {
+        } else if (resourceHoldings >= maxLoad) {
             //find capitalist for a trade
             resourcePointFound = false;
             senseCapitalists(capitalists);
@@ -265,7 +273,7 @@ struct Miner : Agent {
             }
 
         }
-          
+        
         // cout << resourcePointFound << "found??" << endl;
         // cout << distToClosestNRP << " dist to closeset nrp"<< endl;
         // cout<< id_ClosestNRP << "  NRP" << endl;
@@ -392,6 +400,9 @@ struct Miner : Agent {
             //find poems
         };
     }
+    bool bankrupted(){
+        return false;
+    }
     Vec3f separate(vector<Miner>& others){
         Vec3f sum;
         int count = 0;
@@ -445,9 +456,9 @@ struct Worker : Agent {
     float desireLevel;
     bool jobHunting;
     bool positionSecured;
-    int IDNumber;
     int patienceLimit;
     int patienceTimer;
+    bool depression;
     Worker(){
         maxAcceleration = 1;
         mass = 1.0;
@@ -471,7 +482,6 @@ struct Worker : Agent {
         desireChangeRate = r_int(60, 60); //60 ~ 120
         diligency = rnd::uniform(0.7, 1.4); //0.7 ~ 1.4
         mood = r_int(30, 90);
-        IDNumber = 0;
         patienceLimit = r_int(30, 120);
         patienceTimer = 0;
 
@@ -482,12 +492,13 @@ struct Worker : Agent {
         workingDistance = 8;
         jobHunting = true;
         positionSecured = false;
-
         FactoryFound = false;
+        depression = false;
 
         //capitals
         capitalHoldings = 30.0;
         poetryHoldings = 0.0;
+        
 
         //draw body
         scaleFactor = 0.3;
@@ -499,34 +510,44 @@ struct Worker : Agent {
         body.decompress();
         body.generateNormals();
     }
-    void run(vector<Factory>& fs, vector<Worker>& others){
+    void run(vector<Factory>& fs, vector<Worker>& others, vector<Capitalist>& capitalist){
         if (jobHunting){
             senseFactory(fs);
         }
-        // cout << "seekFC  " << fs[id_ClosestFactory].position <<endl;
-        // cout << "work  " << fs[id_ClosestFactory].position <<endl;
-        if (FactoryFound){
-            if (distToClosestFactory > workingDistance){
-                seekFactory(fs);
-                separateForce = 0.3;               
-            } else if (distToClosestFactory <= workingDistance && distToClosestFactory >= 0){
-                work(diligency, mood, fs[id_ClosestFactory].meshOuterRadius, fs);  
-                if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
-                    jobHunting = false;
-                    //earn salary here!!
-                } else {
-                    //think about jobhunting, while waiting for other people to opt out first
-                    patienceTimer += 1;
-                    if (patienceTimer == patienceLimit){
-                        jobHunting = true;
-                        patienceTimer = 0;
-                    }
-                    
-                }
+
+        if (depression){
+            jobHunting = true;
+            if (capitalHoldings <= 30){
+                seekCapitalist(capitalist);
+                separateForce = 1.5;
+            } else {
+                inherentDesire(desireLevel, MetroRadius, FactoryRadius, desireChangeRate);
+                facingToward(movingTarget);
             }
         } else {
-            inherentDesire(desireLevel, MetroRadius, FactoryRadius, desireChangeRate);
-            facingToward(movingTarget);
+            if (FactoryFound){
+                if (distToClosestFactory > workingDistance){
+                    seekFactory(fs);
+                    separateForce = 0.3;               
+                } else if (distToClosestFactory <= workingDistance && distToClosestFactory >= 0){
+                    work(diligency, mood, fs[id_ClosestFactory].meshOuterRadius, fs);  
+                    if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
+                        jobHunting = false;
+                        //earn salary here!!
+                    } else {
+                        //think about jobhunting, while waiting for other people to opt out first
+                        patienceTimer += 1;
+                        if (patienceTimer == patienceLimit){
+                            jobHunting = true;
+                            patienceTimer = 0;
+                        }
+                        
+                    }
+                }
+            } else {
+                inherentDesire(desireLevel, MetroRadius, FactoryRadius, desireChangeRate);
+                facingToward(movingTarget);
+            }
         }
         //default behaviors
         Vec3f sep(separate(others));
@@ -536,13 +557,16 @@ struct Worker : Agent {
         borderDetect();
         update();
     }
+    bool bankrupted(){
+        return false;
+    }
     void senseFactory(vector<Factory>& fs){
         float min = 999;
         int min_id = 0;
-        int count = 0;     
+        int openingCount = 0;     
         for (int i = 0; i < fs.size(); i++){
             if (fs[i].operating() && fs[i].hiring){
-                count += 1;
+                openingCount += 1;
                 Vec3f dist_difference = pose.pos() - fs[i].position;
                 float dist = dist_difference.mag();
                 if (dist < min){
@@ -553,8 +577,12 @@ struct Worker : Agent {
                 }
             }
         }
-        cout << count << endl;
-        cout << "depression?" << endl; // sense capitalist and protest for wage
+        //cout << openingCount << endl;
+        if (openingCount == 0){
+            depression = true;
+        } else {
+            depression = false;
+        }
         if (distToClosestFactory < sensitivityFactory){
             FactoryFound = true;
         } else {
@@ -568,17 +596,20 @@ struct Worker : Agent {
             applyForce(skFS);
             Vec3f t = fs[id_ClosestFactory].position;
             facingToward(t);
-            
         }
     }
-    // void checkOpenings(vector<Factory>& fs){
-    //     if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
-    //         positionSecured = true;
-    //         jobHunting = false;
-    //     } else {
-    //         positionSecured = false;
-    //     }
-    // }
+    void seekCapitalist(vector<Capitalist>& capitalist){
+        if (!capitalist[id_ClosestFactory].bankrupted()){
+            Vec3f skCP(seek(capitalist[id_ClosestFactory].pose.pos()));
+            skCP *= 1.0;
+            applyForce(skCP);
+            Vec3f t = capitalist[id_ClosestFactory].pose.pos();
+            facingToward(t);
+        } else {
+            inherentDesire(desireLevel, MetroRadius, FactoryRadius, desireChangeRate);
+            facingToward(movingTarget);
+        }
+    }
     void work(float diligency, int mood, float radius, vector<Factory>& fs){
         if (bioClock == 0){
             workTarget = r() * radius + fs[id_ClosestFactory].position;
