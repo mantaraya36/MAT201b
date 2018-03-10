@@ -72,11 +72,14 @@ struct MarketManager{
         cout << averageMinerSpeed << "avg miner max speed " << endl;
 
         //initialize price
-        resourceUnitPrice = (1 / averageCollectRate * 60 + NaturalRadius / averageMaxLoad / averageMinerSpeed * 2) * (numMiners * 2 / (1 + liveMiners));
+        resourceUnitPrice = (1 / averageCollectRate * 60 + NaturalRadius / averageMaxLoad / averageMinerSpeed * 2) * ((float)numMiners * 2 / (1 + (float)liveMiners));
         //time is money, frames needed for each resource + travel distance / velocity divided by each resource, plus some extra time
         //the more miners, the cheaper resource, and vice versa
         //resource per second * frameRate = minimum Money consumption rate each frame
-        laborUnitPrice = resourceUnitPrice + resourceUnitPrice * ( (numWorkers - jobHuntingWorkers) / liveWorkers);
+        laborUnitPrice = resourceUnitPrice + resourceUnitPrice * ( ((float)numWorkers - (float)jobHuntingWorkers) / (float)liveWorkers);
+        cout << resourceUnitPrice << " resource unit price"<< endl;
+        cout << laborUnitPrice << " labor unit price" << endl;
+
     }
     void populationMonitor(Capitalist_Entity& capitalists, Worker_Union& workers, Miner_Group& miners){
         liveCapitalists = 0;
@@ -107,8 +110,10 @@ struct MarketManager{
         //cout << liveCapitalists << " cp " << liveWorkers << " ws " << liveMiners << " ms " << endl;
     }
     void updatePrice(Capitalist_Entity& capitalists, Worker_Union& workers, Miner_Group& miners){
-        resourceUnitPrice = (1 / averageCollectRate * 60 + NaturalRadius / averageMaxLoad / averageMinerSpeed * 2) * (numMiners * 2 / (1 + liveMiners));
-        
+        resourceUnitPrice = (1 / averageCollectRate * 60 + NaturalRadius / averageMaxLoad / averageMinerSpeed * 2) * ((float)numMiners * 2 / (1 + (float)liveMiners));
+        laborUnitPrice = resourceUnitPrice + resourceUnitPrice * ( ((float)numWorkers - (float)jobHuntingWorkers) / (float)liveWorkers);
+        // cout << resourceUnitPrice << " resource unit price"<< endl;
+        // cout << laborUnitPrice << " labor unit price" << endl;
     }
     void monitorResourceStatus(vector<Natural_Resource_Point> nrps){
 

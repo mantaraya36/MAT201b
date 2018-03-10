@@ -15,7 +15,11 @@ struct Capitalist_Entity{
     Capitalist operator[] (const int index) const{
         return cs[index];
     }
-
+    void initID(){
+        for (int i = cs.size() - 1; i >= 0; i --){
+            cs[i].capitalistID = i;
+        }
+    }
     void getResource(vector<Miner>& miners){
         for (int i = cs.size() - 1; i >= 0; i --){
             for (int j = miners.size() - 1; i >= 0; i --){
@@ -25,6 +29,12 @@ struct Capitalist_Entity{
                     }
                  }
             }
+        }
+    }
+    void getWorkersPaymentStats(vector<Factory>& fs){
+        for (int i = cs.size() - 1; i >= 0; i --){
+            cs[i].numWorkers = fs[i].workersWorkingNum;
+            cs[i].workersPayCheck = fs[i].laborUnitPrice * cs[i].numWorkers;
         }
     }
     void run(vector<MetroBuilding>& mbs){

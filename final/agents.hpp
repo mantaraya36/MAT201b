@@ -19,9 +19,13 @@ struct Capitalist : Agent {
     int mesh_Nv;
     Vec3f movingTarget;
     int desireChangeRate;
-    int resourceHoldings;
+    float resourceHoldings;
     int TimeToDistribute;
     int resourceClock;
+    float workersPayCheck;
+    float laborUnitPrice;
+    int numWorkers;
+    int capitalistID;
 
     Capitalist(){
         //initial params
@@ -41,9 +45,12 @@ struct Capitalist : Agent {
         desireChangeRate = r_int(50, 150);
 
         //capitals
-        resourceHoldings = r_int(5, 25);
-        capitalHoldings = r_int(30, 90);
+        resourceHoldings = (float)r_int(5, 25);
+        capitalHoldings = 50000.0;
         poetryHoldings = 0.0;
+        laborUnitPrice = 250.0;
+        numWorkers = 0;
+        workersPayCheck = laborUnitPrice * numWorkers;
 
         //factory relation
         TimeToDistribute = 720;
@@ -59,8 +66,7 @@ struct Capitalist : Agent {
         body.generateNormals();
     }
     void run(vector<MetroBuilding>& mbs){
-        
-        
+    
         //basic behaviors
         Vec3f ahb(avoidHittingBuilding(mbs));
         ahb *= 0.8;
@@ -80,6 +86,7 @@ struct Capitalist : Agent {
         //every 12 seconds, half a day, distribute resource
         if (resourceClock == TimeToDistribute) {
             resourceHoldings = 0;
+            capitalHoldings -= workersPayCheck;
             resourceClock = 0;
         }
     }
@@ -155,7 +162,7 @@ struct Miner : Agent {
     float businessDistance;
     int unloadTimeCost;
     float collectRate;
-    int maxLoad;
+    float maxLoad;
     Mesh resource;
 
     Miner(){
@@ -189,7 +196,7 @@ struct Miner : Agent {
         pickingRange = 2.0;
         collectTimer = 0;
         collectRate = 0.5;
-        maxLoad = 12;
+        maxLoad = 12.0;
 
         //relation to capitalist
         distToClosestCapitalist = 120.0f;
@@ -310,8 +317,8 @@ struct Miner : Agent {
         }
     }
     void senseCapitalists(vector<Capitalist>& capitalists){
-        int min_resources = 9999;
-        int max_capitals = 0;
+        float min_resources = 9999;
+        float max_capitals = 0;
         int min_resource_id = 0;
         int max_rich_id = 0;
         for (int i = 0; i < capitalists.size(); i++){
@@ -456,7 +463,7 @@ struct Worker : Agent {
     float desireLevel;
     bool jobHunting;
     bool positionSecured;
-    int patienceLimit;
+    float patienceLimit;
     int patienceTimer;
     bool depression;
     Worker(){
@@ -482,7 +489,7 @@ struct Worker : Agent {
         desireChangeRate = r_int(60, 60); //60 ~ 120
         diligency = rnd::uniform(0.7, 1.4); //0.7 ~ 1.4
         mood = r_int(30, 90);
-        patienceLimit = r_int(30, 120);
+        patienceLimit = (float)r_int(30, 300);
         patienceTimer = 0;
 
         //relation to factory
@@ -531,9 +538,13 @@ struct Worker : Agent {
                     separateForce = 0.3;               
                 } else if (distToClosestFactory <= workingDistance && distToClosestFactory >= 0){
                     work(diligency, mood, fs[id_ClosestFactory].meshOuterRadius, fs);  
+                    capitalHoldings += fs[id_ClosestFactory].individualSalary;
+                    cout << capitalHoldings << " earning money"<< endl;
+                     //earn salary here!! depends on ratio of workers needed and actual
+                     
                     if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
                         jobHunting = false;
-                        //earn salary here!!
+                       
                     } else {
                         //think about jobhunting, while waiting for other people to opt out first
                         patienceTimer += 1;

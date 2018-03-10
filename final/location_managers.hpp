@@ -50,9 +50,9 @@ struct Factories {
         for(int i = cs.cs.size() - 1; i >= 0; i --){
             Factory f;
             Line l;
+            f.factoryID = i;
             fs.push_back(f);
             lines.push_back(l);
-
         }
     }
     void drawLinks(Capitalist_Entity& cs){
@@ -72,7 +72,14 @@ struct Factories {
         for (int i = cs.cs.size() - 1; i >= 0; i --){
             if (cs.cs[i].resourceClock == cs.cs[i].TimeToDistribute - 1){
                 fs[i].materialStocks += cs.cs[i].resourceHoldings;
+                fs[i].capitalReserve += cs.cs[i].workersPayCheck;
             }
+        }
+    }
+    void getLaborPrice(MarketManager& market){
+        for (int i = fs.size() - 1; i >= 0; i --){
+            fs[i].resourceUnitPrice = market.resourceUnitPrice;
+            fs[i].laborUnitPrice = market.laborUnitPrice; 
         }
     }
     void checkWorkerNum(vector<Worker>& workers){
@@ -82,11 +89,13 @@ struct Factories {
         for (int i = workers.size() - 1; i >= 0; i--){
             if (workers[i].distToClosestFactory <= workers[i].workingDistance){
                 fs[workers[i].id_ClosestFactory].workersWorkingNum += 1;
-                // if (fs[workers[i].id_ClosestFactory].workersWorkingNum <= fs[workers[i].id_ClosestFactory].workersNeededNum){
-                    
-                // }
-                //cout << fs[workers[i].id_ClosestFactory].workersWorkingNum << "workers here" << endl;
             }
+        }
+    }
+    void payWorkers(MarketManager& market){
+        for (int i = fs.size() - 1; i >= 0; i--){
+            fs[i].individualSalary = market.laborUnitPrice / 60;
+            fs[i].capitalReserve -= fs[i].workersWorkingNum * market.laborUnitPrice / 60;
         }
     }
 

@@ -107,6 +107,11 @@ struct Factory : Location{
     int produceTimer;
     float produceRate;
     float grossProfits;
+    float resourceUnitPrice;
+    float laborUnitPrice;
+    float capitalReserve;
+    int factoryID;
+    float individualSalary;
     Factory(){
         //drawing
         meshOuterRadius = 1.6f;
@@ -125,14 +130,23 @@ struct Factory : Location{
 
         //working stats
         working_radius = scaleFactor * meshOuterRadius; //for workers to earn wage
-        materialStocks = r_int(10, 5);
+        materialStocks = r_int(15, 15);
         workersNeededNum = ceil((float)materialStocks / 6);
         //openings.resize(workersNeededNum);
         workersWorkingNum = 0;
         hiring = true;
         produceTimer = 0;
         produceRate = 0.5;
+
+        //money related
         grossProfits = 0;
+        capitalReserve = 10000.0;
+        
+
+        //market related
+        resourceUnitPrice = 150;
+        laborUnitPrice = 250;
+        individualSalary = laborUnitPrice / 60;
 
         //shutdown
         shutDownCountDown = 240;
@@ -141,7 +155,7 @@ struct Factory : Location{
         produceTimer ++;
         if (produceTimer % (int)floorf(60.0f / produceRate) == 0){
             materialStocks -= 1;
-            grossProfits += 12; //unitprice * 6
+            grossProfits += resourceUnitPrice * 6.0; //become a commodity
             //cout << materialStocks << endl;
         }
         if (produceTimer >= (int)floorf(60.0f / produceRate) * 36 - 1 ){

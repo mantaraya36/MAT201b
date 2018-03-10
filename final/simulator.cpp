@@ -38,10 +38,16 @@ struct MyApp : App {
         marketManager.statsInit(capitalists, workers, miners);
     }
     void onAnimate(double dt) {
+        //market
+        marketManager.populationMonitor(capitalists, workers, miners);
+        marketManager.updatePrice(capitalists, workers, miners);
+
+        //related to market
+        factories.getLaborPrice(marketManager);
+
         //locations
         metropolis.run();
         factories.run(capitalists);
-       
         NaturalResourcePts.run();
 
         //agents
@@ -49,14 +55,14 @@ struct MyApp : App {
         miners.run(NaturalResourcePts.nrps, miners.ms, capitalists.cs);
         workers.run(factories.fs, workers.workers, capitalists.cs);
         
-        
-        //eventmanager
-        marketManager.populationMonitor(capitalists, workers,miners);
-
         //interaction between groups
         NaturalResourcePts.checkMinerPick(miners.ms);
         factories.checkWorkerNum(workers.workers);
         capitalists.getResource(miners.ms);
+        capitalists.getWorkersPaymentStats(factories.fs);
+
+        //pay workers
+        factories.payWorkers(marketManager);
        
         //locational behaviors
         factories.drawLinks(capitalists);
