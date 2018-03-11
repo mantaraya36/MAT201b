@@ -24,8 +24,12 @@ struct Capitalist : Agent {
     int resourceClock;
     float workersPayCheck;
     float laborUnitPrice;
+    float resourceUnitPrice;
     int numWorkers;
     int capitalistID;
+    float bodyRadius;
+    float bodyHeight;
+    float totalResourceHoldings;
 
     Capitalist(){
         //initial params
@@ -45,19 +49,23 @@ struct Capitalist : Agent {
         desireChangeRate = r_int(50, 150);
 
         //capitals
-        resourceHoldings = (float)r_int(5, 25);
-        capitalHoldings = 50000.0;
+        resourceHoldings = (float)r_int(0, 10);
+        totalResourceHoldings = resourceHoldings;
+        capitalHoldings = 25000.0;
         poetryHoldings = 0.0;
-        laborUnitPrice = 250.0;
+        laborUnitPrice = 420.0;
+        resourceUnitPrice = 280.0;
         numWorkers = 0;
         workersPayCheck = laborUnitPrice * numWorkers;
 
         //factory relation
-        TimeToDistribute = 720;
+        TimeToDistribute = 360;
 
         //draw body
         scaleFactor = 0.3; //richness?
-        mesh_Nv = addCone(body, capitalHoldings / 30.0, Vec3f(0,0,capitalHoldings / 30.0 * 3));
+        bodyRadius = MapValue(capitalHoldings, 0, 100000.0, 3, 6);
+        bodyHeight = bodyRadius * 3;
+        mesh_Nv = addCone(body, bodyRadius, Vec3f(0,0,bodyHeight));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
 			body.color(HSV(f*0.2,0.9,1));
@@ -66,7 +74,7 @@ struct Capitalist : Agent {
         body.generateNormals();
     }
     void run(vector<MetroBuilding>& mbs){
-    
+        //cout << capitalHoldings << "i m capitalist" << endl;
         //basic behaviors
         Vec3f ahb(avoidHittingBuilding(mbs));
         ahb *= 0.8;
@@ -163,6 +171,10 @@ struct Miner : Agent {
     int unloadTimeCost;
     float collectRate;
     float maxLoad;
+    float resourceUnitPrice;
+    float bodyRadius;
+    float bodyHeight;
+    bool exchanging;
     Mesh resource;
 
     Miner(){
@@ -203,14 +215,16 @@ struct Miner : Agent {
         id_ClosestCapitalist = 0;
         sensitivityCapitalist = 160.0f;
         capitalistNearby = false;
-        businessDistance = 4.0f;
+        businessDistance = 8.0f;
         tradeTimer = 0;
         unloadTimeCost = 30;
+        exchanging = false;
 
         //capitals
         resourceHoldings = 0.0;
-        capitalHoldings = 30.0;
+        capitalHoldings = 5000.0;
         poetryHoldings = 0.0;
+        resourceUnitPrice = 120.0;
 
         //human nature
         desireLevel = 0.5;
@@ -218,7 +232,9 @@ struct Miner : Agent {
 
         //draw body
         scaleFactor = 0.3;
-        mesh_Nv = addCone(body, capitalHoldings / 30.0, Vec3f(0,0,capitalHoldings / 30.0 * 3));
+        bodyRadius = MapValue(capitalHoldings, 0, 100000.0, 1, 3);
+        bodyHeight = bodyRadius * 3;
+        mesh_Nv = addCone(body, bodyRadius, Vec3f(0,0,bodyHeight));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
 			body.color(HSV(f*0.05,0.9,1));
@@ -255,9 +271,6 @@ struct Miner : Agent {
                 inherentDesire(desireLevel, FactoryRadius, NaturalRadius, desireChangeRate);
                 facingToward(movingTarget);
             } 
-
-            
-
         } else if (resourceHoldings >= maxLoad) {
             //find capitalist for a trade
             resourcePointFound = false;
@@ -267,6 +280,7 @@ struct Miner : Agent {
                     seekCapitalist(capitalists);
                 } else if (distToClosestCapitalist <= businessDistance && distToClosestCapitalist >= 0){
                     exchangeResource(capitalists);
+                    exchanging = true;
                     tradeTimer ++;
                 }
             } else {
@@ -274,8 +288,10 @@ struct Miner : Agent {
                 facingToward(movingTarget);
             }
             if (tradeTimer == unloadTimeCost){
+                //cout << "transaction finished" << endl;
+                capitalHoldings += resourceUnitPrice * resourceHoldings;
                 resourceHoldings = 0;
-                //capitalHoldings += 
+                exchanging = false;
                 tradeTimer = 0;
             }
 
@@ -317,7 +333,7 @@ struct Miner : Agent {
         }
     }
     void senseCapitalists(vector<Capitalist>& capitalists){
-        float min_resources = 9999;
+        float min_resources = 999999;
         float max_capitals = 0;
         int min_resource_id = 0;
         int max_rich_id = 0;
@@ -325,8 +341,8 @@ struct Miner : Agent {
             if (!capitalists[i].bankrupted()){
 
                 //find the one needs resource
-                if (capitalists[i].resourceHoldings < min_resources){
-                    min_resources = capitalists[i].resourceHoldings;
+                if (capitalists[i].totalResourceHoldings < min_resources){
+                    min_resources = capitalists[i].totalResourceHoldings;
                     min_resource_id = i;
                 }
                 //also find the one who is richest
@@ -466,6 +482,8 @@ struct Worker : Agent {
     float patienceLimit;
     int patienceTimer;
     bool depression;
+    float bodyRadius;
+    float bodyHeight;
     Worker(){
         maxAcceleration = 1;
         mass = 1.0;
@@ -503,13 +521,15 @@ struct Worker : Agent {
         depression = false;
 
         //capitals
-        capitalHoldings = 30.0;
+        capitalHoldings = 2000.0;
         poetryHoldings = 0.0;
         
 
         //draw body
         scaleFactor = 0.3;
-        mesh_Nv = addCone(body, capitalHoldings / 30.0, Vec3f(0,0,capitalHoldings / 30.0 * 3));
+        bodyRadius = MapValue(capitalHoldings, 0, 100000.0, 1, 3);
+        bodyHeight = bodyRadius * 3;
+        mesh_Nv = addCone(body, bodyRadius, Vec3f(0,0,bodyHeight));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
 			body.color(HSV(f*0.65,0.9,1));
@@ -539,12 +559,9 @@ struct Worker : Agent {
                 } else if (distToClosestFactory <= workingDistance && distToClosestFactory >= 0){
                     work(diligency, mood, fs[id_ClosestFactory].meshOuterRadius, fs);  
                     capitalHoldings += fs[id_ClosestFactory].individualSalary;
-                    cout << capitalHoldings << " earning money"<< endl;
                      //earn salary here!! depends on ratio of workers needed and actual
-                     
                     if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
                         jobHunting = false;
-                       
                     } else {
                         //think about jobhunting, while waiting for other people to opt out first
                         patienceTimer += 1;
@@ -552,7 +569,6 @@ struct Worker : Agent {
                             jobHunting = true;
                             patienceTimer = 0;
                         }
-                        
                     }
                 }
             } else {

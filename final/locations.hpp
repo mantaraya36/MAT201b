@@ -106,12 +106,16 @@ struct Factory : Location{
     int shutDownCountDown;
     int produceTimer;
     float produceRate;
+    float produceRateFactor;
     float grossProfits;
     float resourceUnitPrice;
     float laborUnitPrice;
     float capitalReserve;
+    float materialConsumptionRate;
     int factoryID;
     float individualSalary;
+    float produceRateAdjust;
+    float MinerCapitalistRatio;
     Factory(){
         //drawing
         meshOuterRadius = 1.6f;
@@ -126,7 +130,6 @@ struct Factory : Location{
         angle1 = 0.0f;
         angle2 = rnd::uniform(0, 360); // face toward?
         facing_center = Quatd::getRotationTo( Vec3f(q.toVectorZ().normalize()), Vec3f(Vec3f(0,0,0) - position).normalize()) * facing_center;
-        rotation_speed1 = rnd::uniform(0.8,2.0);
 
         //working stats
         working_radius = scaleFactor * meshOuterRadius; //for workers to earn wage
@@ -136,7 +139,9 @@ struct Factory : Location{
         workersWorkingNum = 0;
         hiring = true;
         produceTimer = 0;
-        produceRate = 0.5;
+        produceRate = 1;
+        produceRateFactor = 0.5;
+        produceRateAdjust = 1.0;
 
         //money related
         grossProfits = 0;
@@ -153,26 +158,42 @@ struct Factory : Location{
     }
     void produce(){
         produceTimer ++;
-        if (produceTimer % (int)floorf(60.0f / produceRate) == 0){
-            materialStocks -= 1;
-            grossProfits += resourceUnitPrice * 6.0; //become a commodity
-            //cout << materialStocks << endl;
+        produceRate = floorf(60.0f / (produceRateFactor * produceRateAdjust));
+        //cout << produceTimer<< endl;
+        if (produceTimer % (int)produceRate == 0){
+            materialConsumptionRate = MinerCapitalistRatio * (workersWorkingNum / workersNeededNum);
+            //cout << materialConsumptionRate << " mterial consumption rate" << endl;
+            materialStocks -= 1 * materialConsumptionRate;
+            grossProfits += resourceUnitPrice * 10.0 * (workersWorkingNum / workersNeededNum); //become a commodity, 10 times more than it was
+            
+            if (materialStocks > 30){
+                produceRateAdjust *= 1.2;
+            } else if (materialStocks < 12){
+                produceRateAdjust *= 0.8;
+            }
+            if (produceRateAdjust >= 4){
+                produceRateAdjust = 4; //400% produce rate
+            } else if (produceRateAdjust <= 0.5){
+                produceRateAdjust = 0.5; // 50% produce rate
+            }
         }
-        if (produceTimer >= (int)floorf(60.0f / produceRate) * 36 - 1 ){
+        if (produceTimer >= (int)produceRate * 24 - 1 ){
             produceTimer = 0;
+            grossProfits = 0;
         }
+
         if (materialStocks <= 0){
             materialStocks = 0;
         }
     }
     void animate(){
-        angle1 += rotation_speed1;
+        angle1 += produceRateAdjust * 1.5;
         if (angle1 > 360){
             angle1 = 0;
         }
     }
     void openPositions(){
-        workersNeededNum = floor((float)materialStocks / 5);
+        workersNeededNum = ceil((float)materialStocks / 6);
         //openings.resize(workersNeededNum);
         if (workersWorkingNum >= workersNeededNum){
             hiring = false;
@@ -181,10 +202,13 @@ struct Factory : Location{
         }
     }
     void run(){
+        //cout << workersWorkingNum << " = worker working here" << endl;
         if (materialStocks > 0){
             openPositions();
-            produce();
-            animate();
+            if (workersWorkingNum >= 1){
+                produce();
+                animate();
+            }
             shutDownCountDown = 240;
         } else {
             hiring = false;
@@ -192,7 +216,7 @@ struct Factory : Location{
             if (shutDownCountDown <= 0){
                 shutDownCountDown = 0;
             } else {
-                animate();
+                //animate();
             }
         } 
 
@@ -257,7 +281,7 @@ struct Natural_Resource_Point : Location{
 
         //respawn and drain
         respawn_timer = 0;
-        regeneration_rate = 0.75f; //based on 60fps, if 1, then every second, if 2, then half a second
+        regeneration_rate = 0.85f; //based on 60fps, if 1, then every second, if 2, then half a second
         pickCount = 0;
         maxResourceNum = 5;
         r_index = 0;
@@ -319,7 +343,7 @@ struct Natural_Resource_Point : Location{
             
         } else if (drained()){
             afterDrainTimer ++;
-            if (afterDrainTimer == 720){
+            if (afterDrainTimer == 1440){
                 int r = r_int(0, maxResourceNum);
                 //cout << r << " = index of resources generated" << endl;
                 resources[r].isPicked = false;

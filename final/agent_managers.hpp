@@ -21,20 +21,26 @@ struct Capitalist_Entity{
         }
     }
     void getResource(vector<Miner>& miners){
-        for (int i = cs.size() - 1; i >= 0; i --){
-            for (int j = miners.size() - 1; i >= 0; i --){
-                 if (i == miners[j].id_ClosestCapitalist){
-                    if (miners[j].tradeTimer == miners[j].unloadTimeCost - 1){
-                        cs[i].resourceHoldings += miners[j].resourceHoldings;
-                    }
-                 }
+    
+        for (int j = miners.size() - 1; j >= 0; j --){
+            if (miners[j].exchanging == true){
+                if (miners[j].tradeTimer == miners[j].unloadTimeCost - 1){
+                    //cout << " i m getting resource" << endl;
+                    cs[miners[j].id_ClosestCapitalist].resourceHoldings += miners[j].resourceHoldings;
+                    cs[miners[j].id_ClosestCapitalist].totalResourceHoldings += miners[j].resourceHoldings;
+                    cs[miners[j].id_ClosestCapitalist].capitalHoldings -= miners[j].resourceHoldings * cs[miners[j].id_ClosestCapitalist].resourceUnitPrice;
+                }
             }
         }
     }
     void getWorkersPaymentStats(vector<Factory>& fs){
         for (int i = cs.size() - 1; i >= 0; i --){
             cs[i].numWorkers = fs[i].workersWorkingNum;
+            cs[i].resourceUnitPrice = fs[i].resourceUnitPrice;
             cs[i].workersPayCheck = fs[i].laborUnitPrice * cs[i].numWorkers;
+            if (fs[i].produceTimer >= (int)floorf(60.0f / fs[i].produceRate) * 24 - 2){
+                cs[i].capitalHoldings += fs[i].grossProfits;
+            }
         }
     }
     void run(vector<MetroBuilding>& mbs){
@@ -113,7 +119,7 @@ struct Miner_Group{
     bool drawingLinks;
 
     Miner_Group(){
-        initial_num = 60;
+        initial_num = 120;
         ms.resize(initial_num);
         lines.resize(ms.size());
         drawingLinks = true;
@@ -130,6 +136,14 @@ struct Miner_Group{
 
         //drawing links
         visualize(nrps);
+    }
+    void calculateResourceUnitPrice(vector<Factory>& factories){
+        // miners are not aware of the value of their work, 
+        // rather they believe the resource is evaluated at the factory,
+        // not based on their own work
+        for (int i = ms.size() - 1; i >=0; i --){
+            ms[i].resourceUnitPrice = factories[0].resourceUnitPrice;
+        }
     }
     void visualize(vector<Natural_Resource_Point>& nrps){
         if (drawingLinks){

@@ -39,11 +39,13 @@ struct MyApp : App {
     }
     void onAnimate(double dt) {
         //market
-        marketManager.populationMonitor(capitalists, workers, miners);
+        marketManager.populationMonitor(capitalists, workers, miners, factories.fs);
         marketManager.updatePrice(capitalists, workers, miners);
+        marketManager.capitalMonitor(capitalists, workers, miners, factories.fs);
 
         //related to market
         factories.getLaborPrice(marketManager);
+        miners.calculateResourceUnitPrice(factories.fs);
 
         //locations
         metropolis.run();

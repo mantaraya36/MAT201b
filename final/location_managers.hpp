@@ -80,7 +80,9 @@ struct Factories {
         for (int i = fs.size() - 1; i >= 0; i --){
             fs[i].resourceUnitPrice = market.resourceUnitPrice;
             fs[i].laborUnitPrice = market.laborUnitPrice; 
+            fs[i].MinerCapitalistRatio = market.MinerCapitalistRatio;
         }
+
     }
     void checkWorkerNum(vector<Worker>& workers){
         for (int i = fs.size() - 1; i >= 0; i --){
@@ -95,7 +97,7 @@ struct Factories {
     void payWorkers(MarketManager& market){
         for (int i = fs.size() - 1; i >= 0; i--){
             fs[i].individualSalary = market.laborUnitPrice / 60;
-            fs[i].capitalReserve -= fs[i].workersWorkingNum * market.laborUnitPrice / 60;
+            fs[i].capitalReserve -= fs[i].workersWorkingNum * market.laborUnitPrice / 360;
         }
     }
 
@@ -127,7 +129,7 @@ struct NaturalResourcePointsCollection {
     vector<Natural_Resource_Point> nrps;
     int initial_num;
     NaturalResourcePointsCollection(){
-        initial_num = 20;
+        initial_num = 25;
         nrps.resize(initial_num);
     }
 
