@@ -9,7 +9,7 @@ struct Capitalist_Entity{
     vector<Capitalist> cs;
     int initial_num;
     Capitalist_Entity(){
-        initial_num = 30;
+        initial_num = 15;
         cs.resize(initial_num);
     }
     Capitalist operator[] (const int index) const{
@@ -38,7 +38,8 @@ struct Capitalist_Entity{
             cs[i].numWorkers = fs[i].workersWorkingNum;
             cs[i].resourceUnitPrice = fs[i].resourceUnitPrice;
             cs[i].workersPayCheck = fs[i].laborUnitPrice * cs[i].numWorkers;
-            if (fs[i].produceTimer >= (int)floorf(60.0f / fs[i].produceRate) * 24 - 2){
+            if (fs[i].profitTimer == 359){
+                cout << "earning profiting" << endl;
                 cs[i].capitalHoldings += fs[i].grossProfits;
             }
         }
@@ -46,7 +47,9 @@ struct Capitalist_Entity{
     void run(vector<MetroBuilding>& mbs){
         for (int i = cs.size() - 1; i >= 0; i --){
             Capitalist& c = cs[i];
-            c.run(mbs);
+            if (!c.bankrupted()){
+                c.run(mbs);
+            }
         }
     }
     void draw(Graphics& g){
@@ -66,7 +69,7 @@ struct Worker_Union{
     bool drawingLinks;
 
     Worker_Union(){
-        initial_num = 60;
+        initial_num = 75;
         workers.resize(initial_num);
         lines.resize(workers.size());
         drawingLinks = true;
@@ -74,10 +77,17 @@ struct Worker_Union{
     Worker operator[] (const int index) const{
         return workers[index];
     }
+    void initID(){
+        for (int i = workers.size() - 1; i >= 0; i --){
+            workers[i].workerID = i;
+        }
+    }
     void run(vector<Factory>& fs, vector<Worker>& others, vector<Capitalist>& capitalist){
         for (int i = workers.size() - 1; i >= 0; i --){
             Worker& w = workers[i];
-            w.run(fs, others, capitalist);
+            if (!w.bankrupted()){
+                w.run(fs, others, capitalist);
+            }
         }
         visualize(fs);
     }
@@ -119,7 +129,7 @@ struct Miner_Group{
     bool drawingLinks;
 
     Miner_Group(){
-        initial_num = 120;
+        initial_num = 90;
         ms.resize(initial_num);
         lines.resize(ms.size());
         drawingLinks = true;
@@ -131,9 +141,10 @@ struct Miner_Group{
     void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others, vector<Capitalist>& capitalists){
         for (int i = ms.size() - 1; i >=0; i --){
             Miner& m = ms[i];
-            m.run(nrps, others, capitalists);
+            if (!m.bankrupted()){
+                m.run(nrps, others, capitalists);
+            }
         }
-
         //drawing links
         visualize(nrps);
     }
@@ -170,8 +181,7 @@ struct Miner_Group{
         //push line
     }
     void die(){
-        //delete miner
-        //delete line
+        
     }
     void draw(Graphics& g){
         for (int i = ms.size() - 1; i >=0; i --){

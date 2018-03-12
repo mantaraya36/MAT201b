@@ -36,6 +36,7 @@ struct MyApp : App {
         //generate factories according to number of capitalists
         factories.generate(capitalists);
         marketManager.statsInit(capitalists, workers, miners);
+        workers.initID();
     }
     void onAnimate(double dt) {
         //market
@@ -70,6 +71,10 @@ struct MyApp : App {
         factories.drawLinks(capitalists);
 
         //debug
+        // cout << workers[0].id_ClosestFactory << " i m heading to " << endl;
+        // cout << workers[0].distToClosestFactory << " this much far " << endl;
+        // cout << factories.fs[0].workersWorkingNum << " =  workers " << endl;
+        // cout << "  " << endl;
         // cout << factories.fs[0].materialStocks << "fc material" <<endl;
         // cout << capitalists.cs[0].resourceHoldings << "cp resource" << endl;
         // cout << capitalists.cs[0].resourceClock << "cp clock" <<endl;

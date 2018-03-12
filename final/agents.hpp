@@ -88,6 +88,15 @@ struct Capitalist : Agent {
         inherentDesire(0.5, 0, MetroRadius, desireChangeRate);
         facingToward(movingTarget);
         update();
+        moneyConsumption();
+    }
+    void moneyConsumption(){
+        capitalHoldings -= 10;
+        if (capitalHoldings <= -50000){
+            capitalHoldings = -50000;
+        } else if (capitalHoldings >= 9999999){
+            capitalHoldings = 9999999;
+        }
     }
     void distributeResources(){
         resourceClock ++;
@@ -103,7 +112,11 @@ struct Capitalist : Agent {
 
     }
     bool bankrupted(){
-        return false;
+        if (capitalHoldings <= -50000) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     Vec3f avoidHittingBuilding(vector<MetroBuilding>& mbs){
@@ -136,7 +149,9 @@ struct Capitalist : Agent {
         g.translate(pose.pos());
         g.rotate(pose.quat());
         g.scale(scaleFactor);
-        g.draw(body);
+        if (!bankrupted()){
+            g.draw(body);
+        }
         g.popMatrix();
     }
 };
@@ -309,7 +324,9 @@ struct Miner : Agent {
 
         borderDetect();
         update();
+        moneyConsumption();
     }
+    
     void senseResourcePoints(vector<Natural_Resource_Point>& nrps){
         float min = 999;
         int min_id = 0;     
@@ -423,8 +440,20 @@ struct Miner : Agent {
             //find poems
         };
     }
-    bool bankrupted(){
-        return false;
+    void moneyConsumption(){
+        capitalHoldings -= 1;
+        if (capitalHoldings <= -1000){
+            capitalHoldings = -1000;
+        } else if (capitalHoldings >= 9999999){
+            capitalHoldings = 9999999;
+        }
+    }
+     bool bankrupted(){
+        if (capitalHoldings <= -1000) {
+            return true;
+        } else {
+            return false;
+        }
     }
     Vec3f separate(vector<Miner>& others){
         Vec3f sum;
@@ -456,8 +485,10 @@ struct Miner : Agent {
         g.translate(pose.pos());
         g.rotate(pose.quat());
         g.scale(scaleFactor);
-        if (resourceHoldings >= 12){ g.draw(resource);}
-        g.draw(body);
+        if (!bankrupted()){
+            if (resourceHoldings >= 12){ g.draw(resource);}
+            g.draw(body);
+        }
         g.popMatrix();
     }
 
@@ -484,6 +515,7 @@ struct Worker : Agent {
     bool depression;
     float bodyRadius;
     float bodyHeight;
+    int workerID;
     Worker(){
         maxAcceleration = 1;
         mass = 1.0;
@@ -507,13 +539,13 @@ struct Worker : Agent {
         desireChangeRate = r_int(60, 60); //60 ~ 120
         diligency = rnd::uniform(0.7, 1.4); //0.7 ~ 1.4
         mood = r_int(30, 90);
-        patienceLimit = (float)r_int(30, 300);
+        patienceLimit = (float)r_int(10, 90);
         patienceTimer = 0;
 
         //relation to factory
         distToClosestFactory = 200;
         id_ClosestFactory = 0;
-        sensitivityFactory = 90;
+        sensitivityFactory = 45;
         workingDistance = 8;
         jobHunting = true;
         positionSecured = false;
@@ -521,7 +553,7 @@ struct Worker : Agent {
         depression = false;
 
         //capitals
-        capitalHoldings = 2000.0;
+        capitalHoldings = 4000.0;
         poetryHoldings = 0.0;
         
 
@@ -539,12 +571,17 @@ struct Worker : Agent {
     }
     void run(vector<Factory>& fs, vector<Worker>& others, vector<Capitalist>& capitalist){
         if (jobHunting){
-            senseFactory(fs);
+            patienceTimer += 1;
+            if (patienceTimer == patienceLimit){
+                senseFactory(fs);
+                patienceTimer = 0;
+            }
+            
         }
 
         if (depression){
             jobHunting = true;
-            if (capitalHoldings <= 30){
+            if (capitalHoldings <= 2000){
                 seekCapitalist(capitalist);
                 separateForce = 1.5;
             } else {
@@ -560,15 +597,12 @@ struct Worker : Agent {
                     work(diligency, mood, fs[id_ClosestFactory].meshOuterRadius, fs);  
                     capitalHoldings += fs[id_ClosestFactory].individualSalary;
                      //earn salary here!! depends on ratio of workers needed and actual
-                    if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
+                    //if (fs[id_ClosestFactory].workersWorkingNum <= fs[id_ClosestFactory].workersNeededNum){
+                    if (std::find(fs[id_ClosestFactory].whitelist.begin(), fs[id_ClosestFactory].whitelist.end(), workerID) != fs[id_ClosestFactory].whitelist.end()){
                         jobHunting = false;
                     } else {
                         //think about jobhunting, while waiting for other people to opt out first
-                        patienceTimer += 1;
-                        if (patienceTimer == patienceLimit){
-                            jobHunting = true;
-                            patienceTimer = 0;
-                        }
+                        jobHunting = true;
                     }
                 }
             } else {
@@ -583,27 +617,65 @@ struct Worker : Agent {
 
         borderDetect();
         update();
+        moneyConsumption();
+    }
+    void moneyConsumption(){
+        capitalHoldings -= 3;
+        if (capitalHoldings <= -2000){
+            capitalHoldings = -2000;
+        } else if (capitalHoldings >= 9999999){
+            capitalHoldings = 9999999;
+        }
     }
     bool bankrupted(){
-        return false;
+        if (capitalHoldings <= -2000){
+            return true;
+        } else {
+            return false;
+        }
     }
+    
     void senseFactory(vector<Factory>& fs){
-        float min = 999;
-        int min_id = 0;
+        float min_emptyOpeningRatio = 100;
+        int min_EOR_id = 0;
+        float max_material = 0;
+        int max_material_id = 0;
         int openingCount = 0;     
         for (int i = 0; i < fs.size(); i++){
             if (fs[i].operating() && fs[i].hiring){
                 openingCount += 1;
-                Vec3f dist_difference = pose.pos() - fs[i].position;
-                float dist = dist_difference.mag();
-                if (dist < min){
-                    min = dist;
-                    min_id = i;
-                    distToClosestFactory = min;
-                    id_ClosestFactory = min_id;
+                // Vec3f dist_difference = pose.pos() - fs[i].position;
+                // float dist = dist_difference.mag();
+                if ( ( (fs[i].workersWorkingNum + 1) / fs[i].workersNeededNum) < min_emptyOpeningRatio){
+                    min_emptyOpeningRatio = (fs[i].workersWorkingNum + 1) / fs[i].workersNeededNum;
+                    min_EOR_id = i;
                 }
             }
         }
+        for (int i = 0; i < fs.size(); i ++){
+            if (fs[i].operating() && fs[i].hiring){
+                if (fs[i].materialStocks > max_material){
+                    max_material = fs[i].materialStocks;
+                    max_material_id = i;
+                }
+            }
+        }
+        Vec3f dist_differenceA = pose.pos() - fs[min_EOR_id].position;
+        float distA = dist_differenceA.mag();
+        Vec3f dist_differenceB = pose.pos() - fs[max_material_id].position;
+        float distB = dist_differenceB.mag();
+
+        //cout << min_EOR_id << " most empty fac" << fs[min_EOR_id].workersWorkingNum / fs[min_EOR_id].workersNeededNum << "  empty ratio" <<endl;
+        //cout << max_material_id << "  = most masterial fac " << fs[max_material_id].materialStocks << " material num " << endl;
+        
+        if (distA < distB){
+            distToClosestFactory = distA;
+            id_ClosestFactory = min_EOR_id;
+        } else {
+            distToClosestFactory = distB;
+            id_ClosestFactory = max_material_id;
+        }
+
         //cout << openingCount << endl;
         if (openingCount == 0){
             depression = true;
@@ -690,7 +762,9 @@ struct Worker : Agent {
         g.translate(pose.pos());
         g.rotate(pose.quat());
         g.scale(scaleFactor);
-        g.draw(body);
+        if (!bankrupted()){
+            g.draw(body);
+        }
         g.popMatrix();
     }
 

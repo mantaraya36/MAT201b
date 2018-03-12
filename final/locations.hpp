@@ -102,9 +102,11 @@ struct Factory : Location{
     bool hiring;
     int workersNeededNum;
     int workersWorkingNum;
-    vector<bool> openings;
+    vector<int> whitelist;
+    int maxWorkersAllowed;
     int shutDownCountDown;
     int produceTimer;
+    int profitTimer;
     float produceRate;
     float produceRateFactor;
     float grossProfits;
@@ -120,7 +122,7 @@ struct Factory : Location{
         //drawing
         meshOuterRadius = 1.6f;
         meshInnerRadius = 0.2f;
-        scaleFactor = rnd::uniform(1.0,2.0);
+        scaleFactor = 1;
         position = r();
         temp_pos = position;
         position = position * (FactoryRadius - MetroRadius) + temp_pos.normalize(MetroRadius + CirclePadding);
@@ -135,10 +137,15 @@ struct Factory : Location{
         working_radius = scaleFactor * meshOuterRadius; //for workers to earn wage
         materialStocks = r_int(15, 15);
         workersNeededNum = ceil((float)materialStocks / 6);
-        //openings.resize(workersNeededNum);
+        maxWorkersAllowed = 40;
+        whitelist.resize(maxWorkersAllowed);
+        for (int i = 0; i < whitelist.size(); i ++){
+            whitelist[i] = 99999;
+        }
         workersWorkingNum = 0;
         hiring = true;
         produceTimer = 0;
+        profitTimer = 0;
         produceRate = 1;
         produceRateFactor = 0.5;
         produceRateAdjust = 1.0;
@@ -161,11 +168,15 @@ struct Factory : Location{
         produceRate = floorf(60.0f / (produceRateFactor * produceRateAdjust));
         //cout << produceTimer<< endl;
         if (produceTimer % (int)produceRate == 0){
-            materialConsumptionRate = MinerCapitalistRatio * (workersWorkingNum / workersNeededNum);
-            //cout << materialConsumptionRate << " mterial consumption rate" << endl;
-            materialStocks -= 1 * materialConsumptionRate;
-            grossProfits += resourceUnitPrice * 10.0 * (workersWorkingNum / workersNeededNum); //become a commodity, 10 times more than it was
             
+            
+            materialConsumptionRate = MinerCapitalistRatio  * (float)workersWorkingNum / (float)workersNeededNum;
+            //cout << workersWorkingNum / workersNeededNum << "w/w ratio" << endl;
+            //cout << materialConsumptionRate << " mterial consumption rate" << endl;
+            materialStocks -= 1 * materialConsumptionRate * (produceRateAdjust * 0.5);
+            grossProfits += resourceUnitPrice * 10.0 * materialConsumptionRate * (produceRateAdjust * 0.5); //become a commodity, 10 times more than it was
+            // cout << "producing = " << produceTimer << endl;
+            // cout << " gross profits = " <<grossProfits << endl;
             if (materialStocks > 30){
                 produceRateAdjust *= 1.2;
             } else if (materialStocks < 12){
@@ -173,17 +184,29 @@ struct Factory : Location{
             }
             if (produceRateAdjust >= 4){
                 produceRateAdjust = 4; //400% produce rate
-            } else if (produceRateAdjust <= 0.5){
-                produceRateAdjust = 0.5; // 50% produce rate
+            } else if (produceRateAdjust <= 0.25){
+                produceRateAdjust = 0.25; // 25% produce rate
             }
         }
         if (produceTimer >= (int)produceRate * 24 - 1 ){
             produceTimer = 0;
-            grossProfits = 0;
         }
 
         if (materialStocks <= 0){
             materialStocks = 0;
+        }
+    }
+    void visualChange(){
+        float red = MapValue(materialStocks, 0, 50, 0, 0.98);
+        c = RGB(red, 0.2, 0.2);
+        scaleFactor = 1 + workersWorkingNum * 0.3;
+
+    }
+    void profit(){
+        profitTimer ++;
+        if (profitTimer == 360){
+            grossProfits = 0;
+            profitTimer = 0;
         }
     }
     void animate(){
@@ -194,24 +217,29 @@ struct Factory : Location{
     }
     void openPositions(){
         workersNeededNum = ceil((float)materialStocks / 6);
+        if (workersNeededNum >= maxWorkersAllowed - 1){
+            workersNeededNum = maxWorkersAllowed - 1;
+        }
         //openings.resize(workersNeededNum);
         if (workersWorkingNum >= workersNeededNum){
             hiring = false;
         } else {
             hiring = true;
         }
+        for (int i = workersNeededNum; i < whitelist.size(); i ++ ){
+            whitelist[i] = 99999;
+        }
     }
     void run(){
         //cout << workersWorkingNum << " = worker working here" << endl;
+        openPositions();
         if (materialStocks > 0){
-            openPositions();
             if (workersWorkingNum >= 1){
                 produce();
                 animate();
             }
             shutDownCountDown = 240;
         } else {
-            hiring = false;
             shutDownCountDown--;
             if (shutDownCountDown <= 0){
                 shutDownCountDown = 0;
@@ -220,7 +248,8 @@ struct Factory : Location{
             }
         } 
 
-        
+        profit();
+        visualChange();
     }
 
     bool operating(){

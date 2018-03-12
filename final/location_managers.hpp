@@ -81,6 +81,7 @@ struct Factories {
             fs[i].resourceUnitPrice = market.resourceUnitPrice;
             fs[i].laborUnitPrice = market.laborUnitPrice; 
             fs[i].MinerCapitalistRatio = market.MinerCapitalistRatio;
+            fs[i].maxWorkersAllowed = market.WorkerCapitalistRatio * 1.5;
         }
 
     }
@@ -90,7 +91,10 @@ struct Factories {
         }
         for (int i = workers.size() - 1; i >= 0; i--){
             if (workers[i].distToClosestFactory <= workers[i].workingDistance){
-                fs[workers[i].id_ClosestFactory].workersWorkingNum += 1;
+                if (fs[workers[i].id_ClosestFactory].workersWorkingNum < fs[workers[i].id_ClosestFactory].workersNeededNum){
+                   fs[workers[i].id_ClosestFactory].whitelist[fs[workers[i].id_ClosestFactory].workersWorkingNum] = workers[i].workerID;
+                    fs[workers[i].id_ClosestFactory].workersWorkingNum += 1;
+                }
             }
         }
     }

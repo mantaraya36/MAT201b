@@ -32,12 +32,7 @@ struct Agent{
         }
         pose.pos() += velocity;
         acceleration *= 0; //zeros acceleration
-        capitalHoldings -= 1;
-        if (capitalHoldings <= 0){
-            capitalHoldings = 0;
-        } else if (capitalHoldings >= 999999){
-            capitalHoldings = 999999;
-        }
+        
     }    
     void applyForce(Vec3f force){
       Vec3f f = force / mass;

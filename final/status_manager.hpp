@@ -10,19 +10,20 @@ using namespace std;
 
 
 struct MarketManager{
-    int numCapitalists;
-    int numWorkers;
-    int numMiners;
-    int liveCapitalists;
-    int liveWorkers;
-    int liveMiners;
-    int liveFactories;
-    int jobHuntingWorkers;
-    int poorCapitalists;
-    int poorWorkers;
-    int poorMiners;
-    int richWorkers;
-    int richMiners;
+    float numCapitalists;
+    float numWorkers;
+    float numMiners;
+    float liveCapitalists;
+    float liveWorkers;
+    float liveMiners;
+    float liveFactories;
+    float jobHuntingWorkers;
+    float poorCapitalists;
+    float poorWorkers;
+    float poorMiners;
+    float richWorkers;
+    float richMiners;
+    float richCapitalists;
     float averageCollectRate;
     float averageMaxLoad;
     float averageMinerSpeed;
@@ -37,6 +38,7 @@ struct MarketManager{
     float averageFactoryMaterialStocks;
     float averageCapitalistResource;
     float MinerCapitalistRatio;
+    float WorkerCapitalistRatio;
     float statusTimer;
 
     MarketManager(){
@@ -99,12 +101,20 @@ struct MarketManager{
         liveWorkers = 0;
         liveMiners = 0;
         liveFactories = 0;
+        poorCapitalists = 0;
+        poorMiners = 0;
+        poorWorkers = 0;
+        richCapitalists = 0;
+        richMiners = 0;
+        richWorkers = 0;
         jobHuntingWorkers = 0;
         for (int i = 0; i < capitalists.cs.size(); i ++){
             if (!capitalists.cs[i].bankrupted()){
                 liveCapitalists += 1;
-                if (capitalists.cs[i].capitalHoldings < 20){
-
+                if (capitalists.cs[i].capitalHoldings < 15000){
+                    poorCapitalists += 1; 
+                } else if (capitalists.cs[i].capitalHoldings > 500000){
+                    richCapitalists += 1;
                 }
             }
         }
@@ -114,11 +124,22 @@ struct MarketManager{
                 if (workers.workers[i].jobHunting == true){
                     jobHuntingWorkers += 1;
                 }
+                if (workers.workers[i].capitalHoldings < 2000){
+                    poorWorkers += 1;
+                } else if (workers.workers[i].capitalHoldings > 30000){
+                    richWorkers += 1;
+                }
             }
         }
+        WorkerCapitalistRatio = liveWorkers / liveCapitalists;
         for (int i = 0; i < miners.ms.size(); i++){
             if (!miners.ms[i].bankrupted()){
                 liveMiners += 1;
+                if (miners.ms[i].capitalHoldings < 1000){
+                    poorMiners += 1; 
+                } else if (miners.ms[i].capitalHoldings > 8000){
+                    richMiners += 1;
+                }
             }
         }
         MinerCapitalistRatio = liveMiners / liveCapitalists;
@@ -174,10 +195,13 @@ struct MarketManager{
         cout << resourceUnitPrice << " = resource unit price  "<< laborUnitPrice << " = labor unit price" <<endl;
         cout << averageFactoryMaterialStocks << " = avg material stock " << averageCapitalistResource << "  = avg captialits resource holds"<<endl;
         cout << liveFactories << " = live Factories operating" << endl;
+        cout << richCapitalists << " rich capitalists || " << poorCapitalists << " poor capitalist, out of  " << liveCapitalists << " live capitalists" << endl;
+        cout << richMiners << " rich Miners || " << poorMiners << " poor miners, out of " << liveMiners << " live miners" << endl;
+        cout << richWorkers << " rich workers || " << poorWorkers << " poor Workers, out of " << liveWorkers << " live workers" << endl;
     }
     void updatePrice(Capitalist_Entity& capitalists, Worker_Union& workers, Miner_Group& miners){
         resourceUnitPrice = (1 / averageCollectRate * 60 + NaturalRadius / averageMaxLoad / averageMinerSpeed * 2) * ((float)numMiners * 2 / (1 + (float)liveMiners));
-        laborUnitPrice = 0.5 * resourceUnitPrice + resourceUnitPrice * ( ((float)numWorkers - (float)jobHuntingWorkers) / (float)liveWorkers);
+        laborUnitPrice = 0.4 * resourceUnitPrice + resourceUnitPrice * ( ((float)numWorkers - (float)jobHuntingWorkers) / (float)liveWorkers);
         
     }
     void monitorResourceStatus(vector<Natural_Resource_Point> nrps){
