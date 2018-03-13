@@ -57,6 +57,7 @@ struct Capitalist : Agent {
         resourceUnitPrice = 280.0;
         numWorkers = 0;
         workersPayCheck = laborUnitPrice * numWorkers;
+        livingCost = 10.0;
 
         //factory relation
         TimeToDistribute = 360;
@@ -91,7 +92,40 @@ struct Capitalist : Agent {
         moneyConsumption();
     }
     void moneyConsumption(){
-        capitalHoldings -= 10;
+        moneyTimer ++;
+        if (moneyTimer == 0){
+            lastSavings = capitalHoldings;
+            monthlyTotal = 0;
+        }
+        if (moneyTimer % 60 == 0){
+            currentSavings = capitalHoldings;
+            todayIncome = currentSavings - lastSavings;
+            monthlyTotal += todayIncome;
+            lastSavings = currentSavings;
+        }
+        if (moneyTimer > 60 * 15){
+            monthlyIncome = monthlyTotal;
+            dailyIncome = monthlyIncome / 30;
+            moneyTimer = 0;
+        }
+        //cout << dailyIncome << " daily income " << endl;
+        //cout << monthlyIncome << " monthly income " << endl;
+        if (monthlyIncome > 5000 && monthlyIncome <= 8000){
+            incomeTax = dailyIncome * 0.008;
+            livingCost = 8.0;
+        } else if (monthlyIncome > 8000 && monthlyIncome <= 15000){
+            incomeTax = dailyIncome * 0.012;
+            livingCost = 9.0;
+        } else if (monthlyIncome > 15000 ){
+            incomeTax = dailyIncome * 0.018;
+            livingCost = 10.0;
+        } else if (monthlyIncome <= 5000){
+            incomeTax = 0;
+            livingCost = 6.0;
+        }
+
+        capitalHoldings -= livingCost + incomeTax;
+
         if (capitalHoldings <= -50000){
             capitalHoldings = -50000;
         } else if (capitalHoldings >= 9999999){
@@ -189,6 +223,11 @@ struct Miner : Agent {
     float resourceUnitPrice;
     float bodyRadius;
     float bodyHeight;
+    float numNeighbors;
+    float neightSenseRange;
+    float friendliness;
+    float patienceLimit;
+    float patienceTimer;
     bool exchanging;
     Mesh resource;
 
@@ -218,7 +257,7 @@ struct Miner : Agent {
         resourcePointFound = false;
         searchResourceForce = 1.0;
         collectResourceForce = 1.0;
-        sensitivityNRP = 30.0;
+        sensitivityNRP = 60.0;
         sensitivityResource = 8.0;
         pickingRange = 2.0;
         collectTimer = 0;
@@ -240,10 +279,16 @@ struct Miner : Agent {
         capitalHoldings = 5000.0;
         poetryHoldings = 0.0;
         resourceUnitPrice = 120.0;
+        livingCost = 1.0;
 
         //human nature
         desireLevel = 0.5;
         separateForce = 1.5;
+        numNeighbors = 0.0;
+        neightSenseRange = 10.0;
+        friendliness = r_int(3,12);
+        patienceTimer = 0;
+        patienceLimit = (float)r_int(30, 120);
 
         //draw body
         scaleFactor = 0.3;
@@ -263,9 +308,18 @@ struct Miner : Agent {
     void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others, vector<Capitalist>& capitalists){
         if (resourceHoldings < maxLoad){
             //resource mining
-            senseResourcePoints(nrps);
+            patienceTimer += 1;
+            if (patienceTimer == patienceLimit){
+                if (numNeighbors > friendliness){
+                senseFruitfulPoints(nrps);
+                } else {
+                senseResourcePoints(nrps);
+                }
+                patienceTimer = 0;
+            }
+            
             if (resourcePointFound == true){
-                separateForce = 1.5;
+                separateForce = 1.2;
                 if (distToClosestNRP > sensitivityResource){
                     seekResourcePoint(nrps);
                 } else if (distToClosestNRP < sensitivityResource && distToClosestResource >= 0) {
@@ -326,10 +380,10 @@ struct Miner : Agent {
         update();
         moneyConsumption();
     }
-    
+   
     void senseResourcePoints(vector<Natural_Resource_Point>& nrps){
         float min = 999;
-        int min_id = 0;     
+        int min_id = 0;
         for (int i = 0; i < nrps.size(); i++){
             if (!nrps[i].drained()){
                 Vec3f dist_difference = pose.pos() - nrps[i].position;
@@ -337,9 +391,35 @@ struct Miner : Agent {
                 if (dist < min){
                     min = dist;
                     min_id = i;
-                    //update universal variable for other functions to use
-                    distToClosestNRP = min;
+                        //update universal variable for other functions to use
+                    distToClosestNRP = dist;
                     id_ClosestNRP = min_id;
+                }
+            }
+        }
+        if (distToClosestNRP < sensitivityNRP){
+            resourcePointFound = true;
+        } else {
+            resourcePointFound = false;
+        }
+    }
+
+    void senseFruitfulPoints(vector<Natural_Resource_Point>& nrps){
+        float maxFruitfulness = 0;
+        int max_id = 0;     
+        for (int i = 0; i < nrps.size(); i++){
+            if (!nrps[i].drained()){
+                Vec3f dist_difference = pose.pos() - nrps[i].position;
+                float dist = dist_difference.mag();
+                if (dist < sensitivityNRP){
+                    if (nrps[i].fruitfulness > maxFruitfulness){
+                        maxFruitfulness = nrps[i].fruitfulness;
+                        max_id = i;
+                        
+                        //update universal variable for other functions to use
+                        distToClosestNRP = dist;
+                        id_ClosestNRP = max_id;
+                    }
                 }
             }
         }
@@ -432,16 +512,44 @@ struct Miner : Agent {
             collectNR *= collectResourceForce;
             applyForce(collectNR);
             facingToward(nrps[id_ClosestNRP].resources[min_id].position);
-        } 
+        }
+        findPoems(); 
     }
     void findPoems(){
         //30% probability
-        if (rnd::prob(0.3)) {
-            //find poems
+        if (rnd::prob(0.0001)) {
+            poetryHoldings += 1;
         };
     }
     void moneyConsumption(){
-        capitalHoldings -= 1;
+        moneyTimer ++;
+        if (moneyTimer == 0){
+            lastSavings = capitalHoldings;
+            monthlyTotal = 0;
+        }
+        if (moneyTimer % 60 == 0){
+            currentSavings = capitalHoldings;
+            todayIncome = currentSavings - lastSavings;
+            monthlyTotal += todayIncome;
+            lastSavings = currentSavings;
+        }
+        if (moneyTimer > 60 * 15){
+            monthlyIncome = monthlyTotal;
+            dailyIncome = monthlyIncome / 30;
+            moneyTimer = 0;
+        }
+        if (monthlyIncome > 5000 && monthlyIncome <= 8000){
+            incomeTax = dailyIncome * 0.008;
+        } else if (monthlyIncome > 8000 && monthlyIncome <= 15000){
+            incomeTax = dailyIncome * 0.012;
+        } else if (monthlyIncome > 15000 ){
+            incomeTax = dailyIncome * 0.018;
+        } else if (monthlyIncome <= 5000){
+            incomeTax = 0;
+            povertyWelfare = - livingCost * 0.3;
+        }
+
+        capitalHoldings -= livingCost + incomeTax + povertyWelfare;
         if (capitalHoldings <= -1000){
             capitalHoldings = -1000;
         } else if (capitalHoldings >= 9999999){
@@ -458,15 +566,21 @@ struct Miner : Agent {
     Vec3f separate(vector<Miner>& others){
         Vec3f sum;
         int count = 0;
+        int neighborCount = 0;
         for (Miner m : others){
             Vec3f difference = pose.pos() - m.pose.pos();
             float d = difference.mag();
-            if ((d > 0) && (d<desiredseparation)){
+            if ((d > 0) && (d < desiredseparation)){
                 Vec3f diff = difference.normalize();
                 sum += diff;
                 count ++;
             }
+            if ((d >0 ) && (d < neightSenseRange)){
+                neighborCount ++;
+            }
         }
+        numNeighbors = neighborCount;
+        //cout << numNeighbors << " num neighbors" << endl;
         if (count > 0){
             sum /= count;
             sum.mag(maxspeed);
@@ -555,6 +669,7 @@ struct Worker : Agent {
         //capitals
         capitalHoldings = 4000.0;
         poetryHoldings = 0.0;
+        livingCost = 3.0;
         
 
         //draw body
@@ -590,6 +705,7 @@ struct Worker : Agent {
             }
         } else {
             if (FactoryFound){
+                findPoems();
                 if (distToClosestFactory > workingDistance){
                     seekFactory(fs);
                     separateForce = 0.3;               
@@ -620,7 +736,40 @@ struct Worker : Agent {
         moneyConsumption();
     }
     void moneyConsumption(){
-        capitalHoldings -= 3;
+        moneyTimer ++;
+        if (moneyTimer == 0){
+            lastSavings = capitalHoldings;
+            monthlyTotal = 0;
+        }
+        if (moneyTimer % 60 == 0){
+            currentSavings = capitalHoldings;
+            todayIncome = currentSavings - lastSavings;
+            monthlyTotal += todayIncome;
+            lastSavings = currentSavings;
+        }
+        if (moneyTimer > 60 * 15){
+            monthlyIncome = monthlyTotal;
+            dailyIncome = monthlyIncome / 30;
+            moneyTimer = 0;
+        }
+        //cout << dailyIncome << " daily income " << endl;
+        //cout << monthlyIncome << " monthly income " << endl;'
+        if (monthlyIncome > 5000 && monthlyIncome <= 8000){
+            incomeTax = dailyIncome * 0.008;
+            livingCost = 2.0;
+        } else if (monthlyIncome > 8000 && monthlyIncome <= 15000){
+            incomeTax = dailyIncome * 0.012;
+            livingCost = 3.0;
+        } else if (monthlyIncome > 15000 ){
+            incomeTax = dailyIncome * 0.018;
+            livingCost = 5.0;
+        } else if (monthlyIncome <= 5000){
+            incomeTax = 0;
+            livingCost = 1.5;
+        }
+
+
+        capitalHoldings -= livingCost + incomeTax;
         if (capitalHoldings <= -2000){
             capitalHoldings = -2000;
         } else if (capitalHoldings >= 9999999){
@@ -633,6 +782,12 @@ struct Worker : Agent {
         } else {
             return false;
         }
+    }
+    void findPoems(){
+        //30% probability
+        if (rnd::prob(0.0001)) {
+            poetryHoldings += 1;
+        };
     }
     
     void senseFactory(vector<Factory>& fs){
@@ -726,12 +881,6 @@ struct Worker : Agent {
         workAround *= diligency;
         applyForce(workAround);
         facingToward(workTarget);
-    }
-    void findPoems(){
-        //30% probability
-        if (rnd::prob(0.3)) {
-            //find poems
-        };
     }
     Vec3f separate(vector<Worker>& others){
         Vec3f sum;

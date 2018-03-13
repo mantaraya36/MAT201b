@@ -285,6 +285,7 @@ struct Natural_Resource_Point : Location{
     int maxResourceNum;
     int r_index;
     int initResourceNum;
+    float fruitfulness;
 
     vector<Resource> resources;
     vector<bool> drain_check;
@@ -310,9 +311,9 @@ struct Natural_Resource_Point : Location{
 
         //respawn and drain
         respawn_timer = 0;
-        regeneration_rate = 0.85f; //based on 60fps, if 1, then every second, if 2, then half a second
+        regeneration_rate = rnd::uniform(0.5, 0.95); //based on 60fps, if 1, then every second, if 2, then half a second
         pickCount = 0;
-        maxResourceNum = 5;
+        maxResourceNum = r_int(4,6);
         r_index = 0;
 
         //initialize resource
@@ -336,6 +337,7 @@ struct Natural_Resource_Point : Location{
         }
         afterDrainTimer = 0;
 
+        fruitfulness = ((float)maxResourceNum - (float)pickCount) / (float)maxResourceNum;
     }
 
     void respawn_resource(){
@@ -383,6 +385,9 @@ struct Natural_Resource_Point : Location{
     }
 
     void update_resource(){
+        //check fruitfulness
+        fruitfulness = ((float)maxResourceNum - (float)pickCount) / (float)maxResourceNum;
+        //cout << fruitfulness << " = fruitfulness" << endl;
         for (int i = resources.size() - 1; i >= 0; i--){
             Resource& r = resources[i];
             r.update();

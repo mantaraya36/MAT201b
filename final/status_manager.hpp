@@ -10,6 +10,11 @@ using namespace std;
 
 
 struct MarketManager{
+    //price
+    float resourceUnitPrice;
+    float laborUnitPrice;
+
+    //population
     float numCapitalists;
     float numWorkers;
     float numMiners;
@@ -24,11 +29,11 @@ struct MarketManager{
     float richWorkers;
     float richMiners;
     float richCapitalists;
+
+    //stats
     float averageCollectRate;
     float averageMaxLoad;
     float averageMinerSpeed;
-    float resourceUnitPrice;
-    float laborUnitPrice;
     float averageCapitalistWealth;
     float averageFactoryGrossProfits;
     float averageWorkerWealth;
@@ -37,8 +42,29 @@ struct MarketManager{
     float averageWorkersPayCheck;
     float averageFactoryMaterialStocks;
     float averageCapitalistResource;
+    float averageMinerPoetryLevel;
+    float averageWorkerPoetryLevel;
+    float averageCapitalistPoetryLevel;
     float MinerCapitalistRatio;
     float WorkerCapitalistRatio;
+
+    //inner class stratification
+    float minerWealthLine;
+    float minerPovertyLine;
+    float workerWealthLine;
+    float workerPovertyLine;
+    float capitalistWealthLine;
+    float capitalistPovertyLine;
+
+    //invisible hand
+    float resourcePopulationFactor;
+    float laborPolulationFactor;
+    float minerPovertyRate;
+    float minerWealthRate;
+    float workerPovertyRate;
+    float workerWealthRate;
+
+    //misc
     float statusTimer;
 
     MarketManager(){
@@ -60,6 +86,16 @@ struct MarketManager{
         //market
         resourceUnitPrice = 150;
         laborUnitPrice = 250;
+        resourcePopulationFactor = 1.0;
+        laborPolulationFactor = 1.0;
+
+        //inclass stratification
+        minerPovertyLine = 1000;
+        minerWealthLine = 8000;
+        workerPovertyLine = 2000;
+        workerWealthLine = 30000;
+        capitalistPovertyLine = 15000;
+        capitalistWealthLine = 500000;
 
     }
     void statsInit(Capitalist_Entity& capitalists, Worker_Union& workers, Miner_Group& miners){
@@ -111,9 +147,9 @@ struct MarketManager{
         for (int i = 0; i < capitalists.cs.size(); i ++){
             if (!capitalists.cs[i].bankrupted()){
                 liveCapitalists += 1;
-                if (capitalists.cs[i].capitalHoldings < 15000){
+                if (capitalists.cs[i].capitalHoldings < capitalistPovertyLine){
                     poorCapitalists += 1; 
-                } else if (capitalists.cs[i].capitalHoldings > 500000){
+                } else if (capitalists.cs[i].capitalHoldings > capitalistWealthLine){
                     richCapitalists += 1;
                 }
             }
@@ -124,9 +160,9 @@ struct MarketManager{
                 if (workers.workers[i].jobHunting == true){
                     jobHuntingWorkers += 1;
                 }
-                if (workers.workers[i].capitalHoldings < 2000){
+                if (workers.workers[i].capitalHoldings < workerPovertyLine){
                     poorWorkers += 1;
-                } else if (workers.workers[i].capitalHoldings > 30000){
+                } else if (workers.workers[i].capitalHoldings > workerWealthLine){
                     richWorkers += 1;
                 }
             }
@@ -135,9 +171,9 @@ struct MarketManager{
         for (int i = 0; i < miners.ms.size(); i++){
             if (!miners.ms[i].bankrupted()){
                 liveMiners += 1;
-                if (miners.ms[i].capitalHoldings < 1000){
+                if (miners.ms[i].capitalHoldings < minerPovertyLine){
                     poorMiners += 1; 
-                } else if (miners.ms[i].capitalHoldings > 8000){
+                } else if (miners.ms[i].capitalHoldings > minerWealthLine){
                     richMiners += 1;
                 }
             }
@@ -160,24 +196,34 @@ struct MarketManager{
         float sum6 = 0;
         float sum7 = 0;
         float sum8 = 0;
+        float sum9 = 0;
+        float sum10 = 0;
+        float sum11 = 0;
         for (int i = 0; i < capitalists.cs.size(); i ++){
             sum1 += capitalists.cs[i].capitalHoldings;
             sum6 += capitalists.cs[i].workersPayCheck;
             sum8 += capitalists.cs[i].resourceHoldings;
+            sum11 += capitalists.cs[i].poetryHoldings;
         }
         averageCapitalistWealth = sum1 / liveCapitalists;
         averageWorkersPayCheck = sum6 / liveCapitalists;
         averageCapitalistResource = sum8 / liveCapitalists;
+        averageCapitalistPoetryLevel = sum11 / liveCapitalists;
 
         for (int i = 0; i < workers.workers.size(); i ++){
             sum2 += workers.workers[i].capitalHoldings;
+            sum10 += workers.workers[i].poetryHoldings;
+
         }
         averageWorkerWealth = sum2 / liveWorkers;
+        averageWorkerPoetryLevel = sum10 / liveWorkers;
 
         for (int i = 0; i < miners.ms.size(); i++){
             sum3 += miners.ms[i].capitalHoldings;
+            sum9 += miners.ms[i].poetryHoldings;
         }
         averageMinerWealth = sum3 / liveMiners;
+        averageMinerPoetryLevel = sum9 / liveMiners;
 
         for (int i = 0; i < factories.size(); i ++){
             sum4 += factories[i].grossProfits;
@@ -197,11 +243,39 @@ struct MarketManager{
         cout << liveFactories << " = live Factories operating" << endl;
         cout << richCapitalists << " rich capitalists || " << poorCapitalists << " poor capitalist, out of  " << liveCapitalists << " live capitalists" << endl;
         cout << richMiners << " rich Miners || " << poorMiners << " poor miners, out of " << liveMiners << " live miners" << endl;
-        cout << richWorkers << " rich workers || " << poorWorkers << " poor Workers, out of " << liveWorkers << " live workers" << endl;
+        cout << richWorkers << " rich workers || " << poorWorkers << " poor Workers, out of " << liveWorkers << " live workers, also " << jobHuntingWorkers << " need a job " <<endl;
+        cout << averageMinerPoetryLevel << "= avg Miner Poety " << averageWorkerPoetryLevel << " = avg Worker Poetry " << averageCapitalistPoetryLevel << " = avg Capitalist poetry" << endl;
     }
     void updatePrice(Capitalist_Entity& capitalists, Worker_Union& workers, Miner_Group& miners){
-        resourceUnitPrice = (1 / averageCollectRate * 60 + NaturalRadius / averageMaxLoad / averageMinerSpeed * 2) * ((float)numMiners * 2 / (1 + (float)liveMiners));
-        laborUnitPrice = 0.4 * resourceUnitPrice + resourceUnitPrice * ( ((float)numWorkers - (float)jobHuntingWorkers) / (float)liveWorkers);
+        minerPovertyRate = poorMiners / liveMiners;
+        minerWealthRate = richMiners / liveMiners;
+        if (minerPovertyRate >= 0.1 && minerPovertyRate < 0.3){
+            resourcePopulationFactor = 1.2 + poorMiners / liveMiners;
+        } else if (minerPovertyRate >= 0.3 && minerPovertyRate < 0.5){
+            resourcePopulationFactor = 1.5 + poorMiners / liveMiners;
+        } else if (minerPovertyRate >= 0.5){
+            resourcePopulationFactor = 1.8 + poorMiners / liveMiners;
+        } else if (minerPovertyRate < 0.1){
+            resourcePopulationFactor = 1.0 + poorMiners / liveMiners;;
+        }
+        workerPovertyRate = poorWorkers / liveWorkers;
+        workerWealthRate = richWorkers / liveWorkers;
+
+        //poverty prevention mechanism
+        if (workerPovertyRate >= 0.1 && workerPovertyRate < 0.3){
+            laborPolulationFactor = 1.0 + poorWorkers / liveWorkers;
+        } else if (workerPovertyRate >= 0.3 && workerPovertyRate < 0.5){
+            laborPolulationFactor = 1.5 + poorWorkers / liveWorkers;
+        } else if (workerPovertyRate >= 0.5){
+            laborPolulationFactor = 1.8 + poorWorkers / liveWorkers;
+        } else if (workerPovertyRate < 0.1){
+            laborPolulationFactor = 1.0 + poorWorkers / liveWorkers;
+        }
+
+        //over-rich prevention mechanism is paying more tax, so far
+
+        resourceUnitPrice = (1 / averageCollectRate * 60 + NaturalRadius * 4 / averageMaxLoad / averageMinerSpeed) * ( 1 + (numMiners / (1 + liveMiners)) / 10 ) * resourcePopulationFactor;
+        laborUnitPrice = (0.5 * resourceUnitPrice + resourceUnitPrice * ( (liveWorkers - jobHuntingWorkers) /  (1 + liveWorkers) ) ) * laborPolulationFactor;
         
     }
     void monitorResourceStatus(vector<Natural_Resource_Point> nrps){

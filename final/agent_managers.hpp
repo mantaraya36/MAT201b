@@ -26,21 +26,25 @@ struct Capitalist_Entity{
             if (miners[j].exchanging == true){
                 if (miners[j].tradeTimer == miners[j].unloadTimeCost - 1){
                     //cout << " i m getting resource" << endl;
-                    cs[miners[j].id_ClosestCapitalist].resourceHoldings += miners[j].resourceHoldings;
-                    cs[miners[j].id_ClosestCapitalist].totalResourceHoldings += miners[j].resourceHoldings;
-                    cs[miners[j].id_ClosestCapitalist].capitalHoldings -= miners[j].resourceHoldings * cs[miners[j].id_ClosestCapitalist].resourceUnitPrice;
+                    if (!cs[miners[j].id_ClosestCapitalist].bankrupted()){
+                        cs[miners[j].id_ClosestCapitalist].resourceHoldings += miners[j].resourceHoldings;
+                        cs[miners[j].id_ClosestCapitalist].totalResourceHoldings += miners[j].resourceHoldings;
+                        cs[miners[j].id_ClosestCapitalist].capitalHoldings -= miners[j].resourceHoldings * cs[miners[j].id_ClosestCapitalist].resourceUnitPrice;
+                    }
                 }
             }
         }
     }
     void getWorkersPaymentStats(vector<Factory>& fs){
         for (int i = cs.size() - 1; i >= 0; i --){
-            cs[i].numWorkers = fs[i].workersWorkingNum;
-            cs[i].resourceUnitPrice = fs[i].resourceUnitPrice;
-            cs[i].workersPayCheck = fs[i].laborUnitPrice * cs[i].numWorkers;
-            if (fs[i].profitTimer == 359){
-                cout << "earning profiting" << endl;
-                cs[i].capitalHoldings += fs[i].grossProfits;
+            if (!cs[i].bankrupted()){
+                cs[i].numWorkers = fs[i].workersWorkingNum;
+                cs[i].resourceUnitPrice = fs[i].resourceUnitPrice;
+                cs[i].workersPayCheck = fs[i].laborUnitPrice * cs[i].numWorkers;
+                if (fs[i].profitTimer == 359){
+                    //cout << "earning profiting" << endl;
+                    cs[i].capitalHoldings += fs[i].grossProfits;
+                }
             }
         }
     }
@@ -94,7 +98,7 @@ struct Worker_Union{
     void visualize(vector<Factory>& fs){
         if (drawingLinks){
             for (int i = workers.size() - 1; i >= 0; i--){
-                if (workers[i].FactoryFound){
+                if (workers[i].FactoryFound && !workers[i].bankrupted()){
                     lines[i].vertices()[0] = workers[i].pose.pos();
                     lines[i].vertices()[1] = fs[workers[i].id_ClosestFactory].position;
                 } else {
@@ -129,7 +133,7 @@ struct Miner_Group{
     bool drawingLinks;
 
     Miner_Group(){
-        initial_num = 90;
+        initial_num = 100;
         ms.resize(initial_num);
         lines.resize(ms.size());
         drawingLinks = true;
@@ -159,7 +163,7 @@ struct Miner_Group{
     void visualize(vector<Natural_Resource_Point>& nrps){
         if (drawingLinks){
             for (int i = ms.size() - 1; i >= 0; i--){
-                if (ms[i].resourcePointFound){
+                if (ms[i].resourcePointFound && !ms[i].bankrupted()){
                     lines[i].vertices()[0] = ms[i].pose.pos();
                     lines[i].vertices()[1] = nrps[ms[i].id_ClosestNRP].resources[ms[i].id_ClosestResource].position;
                 } else {

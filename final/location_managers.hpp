@@ -81,7 +81,8 @@ struct Factories {
             fs[i].resourceUnitPrice = market.resourceUnitPrice;
             fs[i].laborUnitPrice = market.laborUnitPrice; 
             fs[i].MinerCapitalistRatio = market.MinerCapitalistRatio;
-            fs[i].maxWorkersAllowed = market.WorkerCapitalistRatio * 1.5;
+            fs[i].maxWorkersAllowed = ceil(market.WorkerCapitalistRatio * 1.5);
+    
         }
 
     }
@@ -103,10 +104,6 @@ struct Factories {
             fs[i].individualSalary = market.laborUnitPrice / 60;
             fs[i].capitalReserve -= fs[i].workersWorkingNum * market.laborUnitPrice / 360;
         }
-    }
-
-    void bankrupt(){
-        //capitalist won't die, instead the factory dies
     }
 
     void run(Capitalist_Entity& cs){

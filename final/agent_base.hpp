@@ -23,6 +23,16 @@ struct Agent{
     int bioClock;
     float capitalHoldings;
     float poetryHoldings;
+    float livingCost;
+    float lastSavings;
+    float currentSavings;
+    float todayIncome;
+    float monthlyTotal;
+    float monthlyIncome;
+    float dailyIncome;
+    int moneyTimer;
+    float incomeTax;
+    float povertyWelfare;
     Vec3f movingTarget;
 
     void update(){
