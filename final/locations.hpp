@@ -12,9 +12,9 @@ using namespace al;
 using namespace std;
 
 float MetroRadius = 5.0f;
-float FactoryRadius = 25.0f;
-float NaturalRadius = 45.0f;
-float CirclePadding = 5.0f;
+float FactoryRadius = 20.0f;
+float NaturalRadius = 30.0f;
+float CirclePadding = 2.5f;
 
  //forward declaration
 struct Worker;

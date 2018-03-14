@@ -126,6 +126,8 @@ struct MyApp : App {
     void onDraw(Graphics& g) {
         material();
         light();
+        //glEnable(GL_POINT_SPRITE);
+        g.blendAdd();
         //draw all the entities
         metropolis.draw(g);
         factories.draw(g);
