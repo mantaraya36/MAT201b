@@ -13,6 +13,12 @@ struct Line : Mesh{
         color(0,1,1);
     }
 };
+struct Poem : Mesh{
+    Poem(){
+
+    }
+
+};
 
 
 #endif

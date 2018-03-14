@@ -12,25 +12,56 @@ struct Miner;
 struct Metropolis{    
     vector<MetroBuilding> mbs;
     int initial_num;
+    float angle;
     Metropolis(){
-        initial_num = 25;
-        mbs.resize(initial_num);
+        // initial_num = 15;
+        // mbs.resize(initial_num);
     }
 
     MetroBuilding operator [](const int index) const {
         return mbs[index];
     }
+    void generate(Capitalist_Entity& cs){
+        for(int i = cs.cs.size() - 1; i >= 0; i --){
+            MetroBuilding m;
+            m.buildingID = i;
+            m.maxBuildings = cs.cs.size();
+            m.scaleFactor = 1;
+            m.position.x = MetroRadius * 2 * sin(MapValue(m.buildingID, 0, m.maxBuildings, 0, M_PI * 2));
+            m.position.y = MetroRadius * 2 * cos(MapValue(m.buildingID, 0, m.maxBuildings, 0, M_PI * 2));
+            m.position.z = 0;
+            mbs.push_back(m);
+        }
+    }
+    void mapCapitalistStats(vector<Capitalist>& capitalists){
+        for (int i = 0; i < capitalists.size(); i ++){
+            mbs[i].maxBuildings = capitalists.size();
+            mbs[i].scaleFactorZ = MapValue(capitalists[i].capitalHoldings, 0, 500000, 0.1, 20);
+            mbs[i].position.x = MetroRadius * 2 * sin(MapValue(mbs[i].buildingID, 0, mbs[i].maxBuildings, 0, M_PI * 2));
+            mbs[i].position.y = MetroRadius * 2 * cos(MapValue(mbs[i].buildingID, 0, mbs[i].maxBuildings, 0, M_PI * 2));
+            mbs[i].position.z = 0;
+        }
+    }
 
     void run(){
+
         for (MetroBuilding& mb : mbs){
-            mb.floating();
+            mb.run();
+        }
+
+        angle += 0.5;
+        if (angle > 360){
+            angle = 0;
         }
     }
     void draw(Graphics& g){
+        g.pushMatrix();
+        g.rotate(angle);
         for (int i = mbs.size() - 1; i >= 0; i --){
             MetroBuilding& mb = mbs[i];
             mb.draw(g);
         }
+        g.popMatrix();
     }
 
 };

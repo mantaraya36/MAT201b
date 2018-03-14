@@ -61,27 +61,42 @@ struct Resource {
 
 struct MetroBuilding : Location{
     int mesh_Nv;
+    float buildingID;
+    float maxBuildings;
+    float scaleFactorZ;
+    float scaleFactorZ_mark;
+    float scaleZvalue;
+    float scaleTimer;
 
     MetroBuilding(){
-        scaleFactor = rnd::uniform(1.0,3.0);
-        position = r() * MetroRadius;
+        scaleFactorZ = 1.0;
+        scaleFactorZ_mark = 1.0;
+        scaleTimer = 0;
+        
         mesh_Nv = addCube(mesh);
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
-			mesh.color(HSV(f*0.6,0.3,1));
+			mesh.color(HSV(0.06 + f*0.1,0.8,1));
 		}
         mesh.decompress();
         mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
     }
 
-    void floating(){
+    void run(){
+        scaleTimer ++;
+        if (scaleTimer == 360){
+            scaleFactorZ_mark = scaleFactorZ;
+            scaleTimer = 0;
+        }
+        scaleZvalue = scaleFactorZ_mark + (scaleFactorZ - scaleFactorZ_mark) * MapValue(scaleTimer, 0, 360, 0, 1);
+        
         //floating little bit
     }
     void draw(Graphics& g) {
         g.pushMatrix();
         g.translate(position);
-        g.scale(scaleFactor);
+        g.scale(scaleFactor, scaleFactor, scaleZvalue);
         g.color(c);
         g.draw(mesh);
         g.popMatrix();

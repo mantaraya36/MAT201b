@@ -33,10 +33,10 @@ struct Capitalist : Agent {
 
     Capitalist(){
         //initial params
-        maxAcceleration = 2;
+        maxAcceleration = 1;
         mass = 1.0;
-        maxspeed = 1;
-        minspeed = 0.3;
+        maxspeed = 0.6;
+        minspeed = 0.1;
         maxforce = 0.1;
         initialRadius = 5;
         target_senseRadius = 10.0;
@@ -86,7 +86,7 @@ struct Capitalist : Agent {
 
         //default behaviors
         borderDetect();
-        inherentDesire(0.5, 0, MetroRadius, desireChangeRate);
+        inherentDesire(0.5, MetroRadius * 0.6, MetroRadius * 2, desireChangeRate);
         facingToward(movingTarget);
         update();
         moneyConsumption();
@@ -159,7 +159,7 @@ struct Capitalist : Agent {
         for (MetroBuilding mb : mbs){
             Vec3f difference = pose.pos() - mb.position;
             float d = difference.mag();
-            if ((d > 0) && (d < desiredseparation)){
+            if ((d > 0) && (d < desiredseparation * mb.scaleFactor)){
                 Vec3d diff = difference.normalize();
                 sum += diff;
                 count++;
@@ -220,6 +220,7 @@ struct Miner : Agent {
     int unloadTimeCost;
     float collectRate;
     float maxLoad;
+    bool fullpack;
     float resourceUnitPrice;
     float bodyRadius;
     float bodyHeight;
@@ -234,7 +235,7 @@ struct Miner : Agent {
     Miner(){
         maxAcceleration = 1;
         mass = 1.0;
-        maxspeed = 0.3;
+        maxspeed = 0.5;
         minspeed = 0.1;
         maxforce = 0.03;
         initialRadius = 5;
@@ -307,6 +308,7 @@ struct Miner : Agent {
 
     void run(vector<Natural_Resource_Point>& nrps, vector<Miner>& others, vector<Capitalist>& capitalists){
         if (resourceHoldings < maxLoad){
+            fullpack = false;
             //resource mining
             patienceTimer += 1;
             if (patienceTimer == patienceLimit){
@@ -341,6 +343,7 @@ struct Miner : Agent {
                 facingToward(movingTarget);
             } 
         } else if (resourceHoldings >= maxLoad) {
+            fullpack = true;
             //find capitalist for a trade
             resourcePointFound = false;
             senseCapitalists(capitalists);

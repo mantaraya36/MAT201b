@@ -4,6 +4,8 @@
 #include "helper.hpp"
 #include "agent_managers.hpp"
 #include "location_managers.hpp"
+#include "common.hpp"
+#include "Cuttlebone/Cuttlebone.hpp"
 
 using namespace al;
 using namespace std;
@@ -25,7 +27,11 @@ struct MyApp : App {
     //market manager
     MarketManager marketManager;
 
-    MyApp() {
+    //for cuttlebone
+    State state;
+    cuttlebone::Maker<State> maker;
+
+    MyApp() : maker("127.0.0.1") {
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 80);             // place the viewer
         lens().far(400);                 // set the far clipping plane
@@ -35,10 +41,14 @@ struct MyApp : App {
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
+        metropolis.generate(capitalists);
         marketManager.statsInit(capitalists, workers, miners);
         workers.initID();
+
+        
     }
     void onAnimate(double dt) {
+        maker.set(state);
         //market
         marketManager.populationMonitor(capitalists, workers, miners, factories.fs);
         marketManager.updatePrice(capitalists, workers, miners);
@@ -61,6 +71,7 @@ struct MyApp : App {
         //interaction between groups
         NaturalResourcePts.checkMinerPick(miners.ms);
         factories.checkWorkerNum(workers.workers);
+        metropolis.mapCapitalistStats(capitalists.cs);
         capitalists.getResource(miners.ms);
         capitalists.getWorkersPaymentStats(factories.fs);
 
@@ -85,6 +96,32 @@ struct MyApp : App {
         // cout << nrps.nrps[0].resources[0].beingPicked << "  r0 being picked?" << endl;
         // cout << nrps.nrps[0].pickCount << "  pickcount?" << endl;
         // cout << nrps.nrps[0].resources.size() << "size = count = " << nrps.nrps[0].pickCount << endl;
+
+        //for cuttlebone
+        for (int i = 0; i < miners.ms.size(); i ++){
+            state.miner_pose[i] = miners.ms[i].pose;
+            state.miner_poetryHoldings[i] = miners.ms[i].poetryHoldings;
+            state.miner_bankrupted[i] = miners.ms[i].bankrupted();
+            state.miner_fullpack[i] = miners.ms[i].fullpack;
+        }
+        for (int i = 0; i < workers.workers.size(); i ++){
+            state.worker_pose[i] = workers.workers[i].pose;
+            state.worker_poetryHoldings[i] = workers.workers[i].poetryHoldings;
+            state.worker_bankrupted[i] = workers.workers[i].bankrupted();
+        }
+        for (int i = 0; i < capitalists.cs.size(); i ++){
+            state.capitalist_pose[i] = capitalists.cs[i].pose;
+            state.capitalist_poetryHoldigs[i] = capitalists.cs[i].poetryHoldings;
+            state.capitalist_bankrupted[i] = capitalists.cs[i].bankrupted();
+            state.factory_pos[i] = factories.fs[i].position;
+            state.factory_rotation_angle[i] = factories.fs[i].angle1;
+            state.factory_size[i] = factories.fs[i].scaleFactor;
+            state.factory_color[i] = factories.fs[i].c;
+            state.building_pos[i] = metropolis.mbs[i].position;
+            state.building_size[i] = metropolis.mbs[i].scaleFactor;
+        } 
+        state.nav_pose = nav();
+   
     }
     void onDraw(Graphics& g) {
         material();
@@ -117,5 +154,7 @@ struct MyApp : App {
 };
 
 int main() { 
-    MyApp().start(); 
+    MyApp app;
+    app.maker.start();
+    app.start(); 
 }
