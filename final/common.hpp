@@ -34,6 +34,7 @@ struct State{
     //factory
     Vec3f factory_pos[15];
     float factory_rotation_angle[15];
+    Quatf factory_facing_center[15];
     float factory_size[15];
     Color factory_color[15];
 

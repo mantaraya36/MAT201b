@@ -28,7 +28,7 @@ struct MyApp : App {
     cuttlebone::Taker<State> taker;
     MyApp() {
         light.pos(0, 0, 0);              // place the light
-        nav().pos(0, 0, 50);             // place the viewer
+        nav().pos(0, 0, 80);             // place the viewer
         lens().far(400);                 // set the far clipping plane
         background(Color(0.07));
         initWindow();
@@ -95,6 +95,7 @@ struct MyApp : App {
     virtual void onDraw(Graphics& g, const Viewpoint& v) {
         material();
         light();
+        g.blendAdd();
 
         //draw miners
         for (unsigned i = 0; i < state.numMiners; i ++){
@@ -114,12 +115,29 @@ struct MyApp : App {
             g.draw(worker_body);
             g.popMatrix();
         }
+        //draw capitalists, factories, and buildings
         for (unsigned i = 0; i < state.numCapitalists; i ++){
+            //capitalists
             g.pushMatrix();
             g.translate(state.capitalist_pose[i].pos());
             g.rotate(state.capitalist_pose[i].quat());
             g.scale(state.capitalist_scale[i]);
             g.draw(capitalist_body);
+            g.popMatrix();
+            //factories
+            g.pushMatrix();
+            g.translate(state.factory_pos[i]);
+            g.rotate(state.factory_facing_center[i]);
+            g.rotate(state.factory_rotation_angle[i],0,0,1);
+            g.scale(state.factory_size[i]);
+            g.color(state.factory_color[i]);
+            g.draw(factory_body);
+            g.popMatrix();
+            //metropolis
+            g.pushMatrix();
+            g.translate(state.building_pos[i]);
+            g.scale(state.building_size[i]);
+            g.draw(metro_body);
             g.popMatrix();
         }
         

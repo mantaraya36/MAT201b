@@ -124,6 +124,7 @@ struct MyApp : App {
             state.capitalist_bankrupted[i] = capitalists.cs[i].bankrupted();
             state.factory_pos[i] = factories.fs[i].position;
             state.factory_rotation_angle[i] = factories.fs[i].angle1;
+            state.factory_facing_center[i] = factories.fs[i].facing_center;
             state.factory_size[i] = factories.fs[i].scaleFactor;
             state.factory_color[i] = factories.fs[i].c;
             state.building_pos[i] = metropolis.mbs[i].position;
