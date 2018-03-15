@@ -101,7 +101,7 @@ struct MyApp : App {
         state.numMiners = miners.ms.size();
         state.numWorkers = workers.workers.size();
         state.numCapitalists = capitalists.cs.size();
-        state.numResourcePoints = NaturalResourcePts.nrps.size() * 7;
+        state.numResources = NaturalResourcePts.nrps.size() * 7;
 
         for (int i = 0; i < miners.ms.size(); i ++){
             state.miner_pose[i] = miners.ms[i].pose;
@@ -116,12 +116,16 @@ struct MyApp : App {
             state.worker_scale[i] = workers.workers[i].scaleFactor;
             state.worker_poetryHoldings[i] = workers.workers[i].poetryHoldings;
             state.worker_bankrupted[i] = workers.workers[i].bankrupted();
+            state.worker_lines_posA[i] = workers.lines[i].vertices()[0];
+            state.worker_lines_posB[i] = workers.lines[i].vertices()[1];
         }
         for (int i = 0; i < capitalists.cs.size(); i ++){
             state.capitalist_pose[i] = capitalists.cs[i].pose;
             state.capitalist_scale[i] = capitalists.cs[i].scaleFactor;
             state.capitalist_poetryHoldigs[i] = capitalists.cs[i].poetryHoldings;
             state.capitalist_bankrupted[i] = capitalists.cs[i].bankrupted();
+            state.capitalist_lines_posA[i] = factories.lines[i].vertices()[0];
+            state.capitalist_lines_posB[i] = factories.lines[i].vertices()[1];
             state.factory_pos[i] = factories.fs[i].position;
             state.factory_rotation_angle[i] = factories.fs[i].angle1;
             state.factory_facing_center[i] = factories.fs[i].facing_center;
@@ -134,9 +138,13 @@ struct MyApp : App {
             state.resource_point_pos[i] = NaturalResourcePts.nrps[i].position;
             for (int j = 0; j < NaturalResourcePts.nrps[i].resources.size(); j ++){
                 state.resource_pos[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].position; 
-                state.resource_visible[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].isPicked;
+                state.resource_angleA[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].angle1;
+                state.resource_angleB[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].angle2;
+                state.resource_scale[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].scaleFactor;
+                state.resource_picked[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].isPicked;
             }
         }
+        state.metro_rotate_angle = metropolis.angle;
         state.nav_pose = nav();
    
     }

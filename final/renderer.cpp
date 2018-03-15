@@ -2,6 +2,7 @@
 #include "allocore/io/al_App.hpp"
 #include "common.hpp"
 #include "helper.hpp"
+#include "meshes.hpp"
 using namespace al;
 
 struct MyApp : App {
@@ -22,6 +23,8 @@ struct MyApp : App {
     int metro_nv;
     Mesh resource_body;
     int resource_nv;
+    vector<Line> capitalist_lines;
+    vector<Line> worker_lines;
 
     //cuttlebone
     State state;
@@ -87,9 +90,23 @@ struct MyApp : App {
         resource_body.generateNormals();
 
         //lines
+        capitalist_lines.resize(20);
+        worker_lines.resize(100);
+
     }
     virtual void onAnimate(double dt) { 
         taker.get(state);
+        // capitalist_lines.resize(state.numCapitalists);
+        // worker_lines.resize(state.numWorkers);
+        for (int i = 0; i < state.numCapitalists; i ++){
+            capitalist_lines[i].vertices()[0] = state.capitalist_lines_posA[i];
+            capitalist_lines[i].vertices()[1] = state.capitalist_lines_posB[i];
+        }
+        for (int i = 0; i < state.numWorkers; i ++){
+            worker_lines[i].vertices()[0] = state.worker_lines_posA[i];
+            worker_lines[i].vertices()[1] = state.worker_lines_posB[i];
+        }
+        nav().set(state.nav_pose);
 
     }
     virtual void onDraw(Graphics& g, const Viewpoint& v) {
@@ -99,31 +116,41 @@ struct MyApp : App {
 
         //draw miners
         for (unsigned i = 0; i < state.numMiners; i ++){
-            g.pushMatrix();
-            g.translate(state.miner_pose[i].pos());
-            g.rotate(state.miner_pose[i].quat());
-            g.scale(state.miner_scale[i]);
-            g.draw(miner_body);
-            g.popMatrix();
+            if (!state.miner_bankrupted[i]){
+                g.pushMatrix();
+                g.translate(state.miner_pose[i].pos());
+                g.rotate(state.miner_pose[i].quat());
+                g.scale(state.miner_scale[i]);
+                g.draw(miner_body);
+                g.popMatrix();
+            }
         }
         //draw workers
         for (unsigned i = 0; i < state.numWorkers; i ++){
-            g.pushMatrix();
-            g.translate(state.worker_pose[i].pos());
-            g.rotate(state.worker_pose[i].quat());
-            g.scale(state.worker_scale[i]);
-            g.draw(worker_body);
-            g.popMatrix();
+            if (!state.worker_bankrupted[i]){
+                g.pushMatrix();
+                g.translate(state.worker_pose[i].pos());
+                g.rotate(state.worker_pose[i].quat());
+                g.scale(state.worker_scale[i]);
+                g.draw(worker_body);
+                g.popMatrix();
+                //lines
+                g.draw(worker_lines[i]);
+            }
         }
         //draw capitalists, factories, and buildings
         for (unsigned i = 0; i < state.numCapitalists; i ++){
             //capitalists
-            g.pushMatrix();
-            g.translate(state.capitalist_pose[i].pos());
-            g.rotate(state.capitalist_pose[i].quat());
-            g.scale(state.capitalist_scale[i]);
-            g.draw(capitalist_body);
-            g.popMatrix();
+            if (!state.capitalist_bankrupted[i]){
+                g.pushMatrix();
+                g.translate(state.capitalist_pose[i].pos());
+                g.rotate(state.capitalist_pose[i].quat());
+                g.scale(state.capitalist_scale[i]);
+                g.draw(capitalist_body);
+                g.popMatrix();
+                //lines
+                g.draw(capitalist_lines[i]);
+            }
             //factories
             g.pushMatrix();
             g.translate(state.factory_pos[i]);
@@ -135,12 +162,28 @@ struct MyApp : App {
             g.popMatrix();
             //metropolis
             g.pushMatrix();
-            g.translate(state.building_pos[i]);
-            g.scale(state.building_size[i]);
-            g.draw(metro_body);
+            g.rotate(state.metro_rotate_angle);
+                g.pushMatrix();
+                g.translate(state.building_pos[i]);
+                g.scale(state.building_size[i]);
+                g.draw(metro_body);
+                g.popMatrix();
             g.popMatrix();
         }
         
+        //resource
+        for (int i = 0; i < state.numResources; i ++){
+            if (!state.resource_picked[i]){
+                g.pushMatrix();
+                g.translate(state.resource_pos[i]);
+                g.rotate(state.resource_angleA[i], 0, 1, 0);
+                g.rotate(state.resource_angleB[i], 1, 0, 0);
+                g.scale(state.resource_scale[i]);
+                g.draw(resource_body);
+                g.popMatrix();
+            }
+        }
+
     }
     
     virtual void onSound(AudioIOData& io) {
@@ -149,7 +192,7 @@ struct MyApp : App {
             io.out(0) = 0;
             io.out(1) = 0;
         }
-  }
+    }
 };
 
 int main() {

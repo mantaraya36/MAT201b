@@ -10,7 +10,7 @@ struct State{
     float numMiners;
     float numCapitalists;
     float numWorkers;
-    float numResourcePoints;
+    float numResources;
 
     //miner
     Pose miner_pose[100];
@@ -41,7 +41,16 @@ struct State{
     //resources
     Vec3f resource_point_pos[25]; 
     Vec3f resource_pos[25 * 7]; // the positions of resource are already global
-    bool resource_visible[25 * 7];
+    float resource_angleA[25 * 7];
+    float resource_angleB[25 * 7];
+    float resource_scale[25 * 7];
+    bool resource_picked[25 * 7];
+
+    //lines
+    Vec3f worker_lines_posA[75];
+    Vec3f worker_lines_posB[75];
+    Vec3f capitalist_lines_posA[15];
+    Vec3f capitalist_lines_posB[15];
 
     //nav
     // Vec3f nav_pos;
@@ -49,6 +58,7 @@ struct State{
     Pose nav_pose;
 
     //buildings
+    float metro_rotate_angle;
     Vec3f building_pos[15];
     float building_size[15];
 

@@ -32,8 +32,10 @@ struct Resource {
     bool isPicked;
     bool beingPicked;
     int timer;
+    float scaleFactor;
 
     Resource(){
+        scaleFactor = rnd::uniform(1.0,3.0);
         position = r();
         c = HSV(rnd::uniformS(), 0.7, 1);
         angle1 = 0.0f;
@@ -306,7 +308,7 @@ struct Natural_Resource_Point : Location{
     vector<bool> drain_check;
 
     Natural_Resource_Point(){
-        scaleFactor = rnd::uniform(1.0,3.0);
+        scaleFactor = 1;
         meshRadius = 0.3f;
         resource_distribution_density = 0.4f;
         resource_spawn_radius = meshRadius * (1/resource_distribution_density) * scaleFactor; // for resource to spawn
