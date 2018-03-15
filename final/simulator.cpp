@@ -33,7 +33,7 @@ struct MyApp : App {
 
     MyApp() : maker("127.0.0.1") {
         light.pos(0, 0, 0);              // place the light
-        nav().pos(0, 0, 80);             // place the viewer
+        nav().pos(0, 0, 80);             // place the viewer //80
         lens().far(400);                 // set the far clipping plane
         background(Color(0.4));
         initWindow();
@@ -51,9 +51,9 @@ struct MyApp : App {
         maker.set(state);
         //market
         marketManager.populationMonitor(capitalists, workers, miners, factories.fs);
-        marketManager.updatePrice(capitalists, workers, miners);
         marketManager.capitalMonitor(capitalists, workers, miners, factories.fs);
-
+        marketManager.updatePrice(capitalists, workers, miners);
+        
         //related to market
         factories.getLaborPrice(marketManager);
         miners.calculateResourceUnitPrice(factories.fs);
@@ -98,19 +98,28 @@ struct MyApp : App {
         // cout << nrps.nrps[0].resources.size() << "size = count = " << nrps.nrps[0].pickCount << endl;
 
         //for cuttlebone
+        state.numMiners = miners.ms.size();
+        state.numWorkers = workers.workers.size();
+        state.numCapitalists = capitalists.cs.size();
+        state.numResourcePoints = NaturalResourcePts.nrps.size() * 7;
+
         for (int i = 0; i < miners.ms.size(); i ++){
             state.miner_pose[i] = miners.ms[i].pose;
+            state.miner_scale[i] = miners.ms[i].scaleFactor;
             state.miner_poetryHoldings[i] = miners.ms[i].poetryHoldings;
             state.miner_bankrupted[i] = miners.ms[i].bankrupted();
             state.miner_fullpack[i] = miners.ms[i].fullpack;
+    
         }
         for (int i = 0; i < workers.workers.size(); i ++){
             state.worker_pose[i] = workers.workers[i].pose;
+            state.worker_scale[i] = workers.workers[i].scaleFactor;
             state.worker_poetryHoldings[i] = workers.workers[i].poetryHoldings;
             state.worker_bankrupted[i] = workers.workers[i].bankrupted();
         }
         for (int i = 0; i < capitalists.cs.size(); i ++){
             state.capitalist_pose[i] = capitalists.cs[i].pose;
+            state.capitalist_scale[i] = capitalists.cs[i].scaleFactor;
             state.capitalist_poetryHoldigs[i] = capitalists.cs[i].poetryHoldings;
             state.capitalist_bankrupted[i] = capitalists.cs[i].bankrupted();
             state.factory_pos[i] = factories.fs[i].position;
@@ -120,6 +129,13 @@ struct MyApp : App {
             state.building_pos[i] = metropolis.mbs[i].position;
             state.building_size[i] = metropolis.mbs[i].scaleFactor;
         } 
+        for (int i = 0; i < NaturalResourcePts.nrps.size(); i ++){
+            state.resource_point_pos[i] = NaturalResourcePts.nrps[i].position;
+            for (int j = 0; j < NaturalResourcePts.nrps[i].resources.size(); j ++){
+                state.resource_pos[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].position; 
+                state.resource_visible[i * NaturalResourcePts.nrps[i].resources.size() + j] = NaturalResourcePts.nrps[i].resources[j].isPicked;
+            }
+        }
         state.nav_pose = nav();
    
     }
@@ -134,7 +150,6 @@ struct MyApp : App {
         NaturalResourcePts.draw(g);
         capitalists.draw(g);
         miners.draw(g);
-         
         workers.draw(g);
     }
     void onSound(AudioIOData& io) {

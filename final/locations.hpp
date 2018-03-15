@@ -328,7 +328,7 @@ struct Natural_Resource_Point : Location{
         respawn_timer = 0;
         regeneration_rate = rnd::uniform(0.5, 0.95); //based on 60fps, if 1, then every second, if 2, then half a second
         pickCount = 0;
-        maxResourceNum = r_int(4,6);
+        maxResourceNum = 7;
         r_index = 0;
 
         //initialize resource

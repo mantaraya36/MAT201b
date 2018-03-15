@@ -258,7 +258,7 @@ struct Miner : Agent {
         resourcePointFound = false;
         searchResourceForce = 1.0;
         collectResourceForce = 1.0;
-        sensitivityNRP = 60.0;
+        sensitivityNRP = 30.0;
         sensitivityResource = 8.0;
         pickingRange = 2.0;
         collectTimer = 0;
