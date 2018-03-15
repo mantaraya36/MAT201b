@@ -5,8 +5,8 @@
 #include "agent_managers.hpp"
 #include "location_managers.hpp"
 #include "common.hpp"
-#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
-#include "alloutil/al_Simulator.hpp"
+//#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
+//#include "alloutil/al_Simulator.hpp"
 #include "Cuttlebone/Cuttlebone.hpp"
 
 using namespace al;
@@ -15,7 +15,7 @@ using namespace std;
 //Mengyu Chen, 2018
 //mengyuchen@ucsb.edu
 
-struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
+struct MyApp : App {
     Material material;
     Light light;
 
@@ -36,19 +36,13 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     State state;
     cuttlebone::Maker<State> maker;
 
-    MyApp() : maker(Simulator::defaultBroadcastIP()),
-        InterfaceServerClient(Simulator::defaultInterfaceServerIP())         {
+    MyApp() : maker("127.0.0.1") {
         light.pos(0, 0, 0);              // place the light
-        nav().pos(0, 0, 50);             // place the viewer //80
+        nav().pos(0, 0, 80);             // place the viewer //80
         lens().far(400);                 // set the far clipping plane
         background(Color(0.4));
         initWindow();
-        //initAudio(44100);
-
-        //audio
-        AlloSphereAudioSpatializer::initAudio();
-        AlloSphereAudioSpatializer::initSpatialization();
-
+        initAudio(44100);
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
@@ -59,11 +53,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         
     }
     void onAnimate(double dt) {
-        //this updates your nav, especially you use a controller / joystick
-        while (InterfaceServerClient::oscRecv().recv()){
-
-        }
-
+        maker.set(state);
         //market
         marketManager.populationMonitor(capitalists, workers, miners, factories.fs);
         marketManager.capitalMonitor(capitalists, workers, miners, factories.fs);
@@ -161,8 +151,6 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         }
         state.metro_rotate_angle = metropolis.angle;
         state.nav_pose = nav();
-
-        maker.set(state);
    
     }
     void onDraw(Graphics& g) {
@@ -198,8 +186,6 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 
 int main() { 
     MyApp app;
-    app.AlloSphereAudioSpatializer::audioIO().start();
-    app.InterfaceServerClient::connect();
     app.maker.start();
     app.start(); 
 }

@@ -7,10 +7,10 @@ using namespace al;
 
 struct State{
     //general stats
-    float numMiners;
-    float numCapitalists;
-    float numWorkers;
-    float numResources;
+    float numMiners = 100;
+    float numCapitalists = 15;
+    float numWorkers = 75;
+    float numResources = 25 * 7;
 
     //miner
     Pose miner_pose[100];

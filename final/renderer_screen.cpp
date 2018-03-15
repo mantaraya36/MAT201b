@@ -3,13 +3,13 @@
 #include "common.hpp"
 #include "helper.hpp"
 #include "meshes.hpp"
-#include "alloutil/al_OmniStereoGraphicsRenderer.hpp"
+//#include "alloutil/al_OmniStereoGraphicsRenderer.hpp"
 using namespace al;
 
 //Mengyu Chen, 2018
 //mengyuchen@ucsb.edu
 
-struct MyApp : OmniStereoGraphicsRenderer {
+struct MyApp : App {
     //basics
     Material material;
     Light light;
@@ -30,10 +30,6 @@ struct MyApp : OmniStereoGraphicsRenderer {
     vector<Line> capitalist_lines;
     vector<Line> worker_lines;
 
-    //if image
-    // Mesh backgroundMesh;
-    // Texture backgroundTexture;
-
     //cuttlebone
     State state;
     cuttlebone::Taker<State> taker;
@@ -41,28 +37,9 @@ struct MyApp : OmniStereoGraphicsRenderer {
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 80);             // place the viewer
         lens().far(400);                 // set the far clipping plane
-        //background(Color(0.4));
+        background(Color(0.4));
         initWindow();
         //initAudio(44100);
-
-        //if pure color
-        omni().clearColor() = Color(0.4);
-
-        //if background Image, remember to draw mesh
-        //addSphereWithTexcoords(backgroundMesh);
-        
-        // Image image;
-        // SearchPaths searchPaths;
-        // searchPaths.addSearchPath("./");
-        // string filename = searchPaths.find("blue.jpg").filepath();
-        // if (image.load(filename)) {
-        //     cout << "Read image from " << filename << endl;
-        // } else {
-        //     cout << "Failed to read image from " << filename << "!!!" << endl;
-        // exit(-1);
-        // }
-
-        // backgroundTexture.allocate(image.array());
 
         //initialize mesh
         //miner body
@@ -117,20 +94,12 @@ struct MyApp : OmniStereoGraphicsRenderer {
         resource_body.generateNormals();
 
         //lines
-        capitalist_lines.resize(15);
-        worker_lines.resize(75);
+        capitalist_lines.resize(20);
+        worker_lines.resize(100);
 
     }
-   void onAnimate(double dt) { 
-        static bool hasNeverHeardFromSim = true;
-        if (taker.get(state) > 0){
-            hasNeverHeardFromSim = false;
-        }
-        if (hasNeverHeardFromSim){
-            return;
-        }
-        
-        //cout << "heard?" << endl;
+    virtual void onAnimate(double dt) { 
+        taker.get(state);
         // capitalist_lines.resize(state.numCapitalists);
         // worker_lines.resize(state.numWorkers);
         for (int i = 0; i < state.numCapitalists; i ++){
@@ -142,18 +111,14 @@ struct MyApp : OmniStereoGraphicsRenderer {
             worker_lines[i].vertices()[1] = state.worker_lines_posB[i];
         }
         nav().set(state.nav_pose);
-        pose = nav();
 
     }
-    void onDraw(Graphics& g) {
-        // //draw background mesh
-        // g.draw(backgroundMesh);
-
-
-        shader().uniform("lighting", 0.3);
+    virtual void onDraw(Graphics& g, const Viewpoint& v) {
+        material();
+        light();
+        //shader().uniform("lighting", 1.0);
         g.blendAdd();
-        //material();
-        //light();
+
         //draw miners
         for (unsigned i = 0; i < state.numMiners; i ++){
             if (!state.miner_bankrupted[i]){
@@ -226,6 +191,13 @@ struct MyApp : OmniStereoGraphicsRenderer {
 
     }
     
+    virtual void onSound(AudioIOData& io) {
+     //io(); // means ready yourself for the next sample set
+        while (io()) {
+            io.out(0) = 0;
+            io.out(1) = 0;
+        }
+    }
 };
 
 int main() {
