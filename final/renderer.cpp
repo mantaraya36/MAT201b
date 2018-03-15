@@ -33,7 +33,7 @@ struct MyApp : App {
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 80);             // place the viewer
         lens().far(400);                 // set the far clipping plane
-        background(Color(0.07));
+        background(Color(0.4));
         initWindow();
         //initAudio(44100);
 
