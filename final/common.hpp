@@ -61,6 +61,7 @@ struct State{
     float metro_rotate_angle;
     Vec3f building_pos[15];
     float building_size[15];
+    float building_scaleZ[15];
 
 };
 

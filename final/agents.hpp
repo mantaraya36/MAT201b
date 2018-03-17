@@ -7,15 +7,19 @@
 #include "helper.hpp"
 #include "agent_base.hpp"
 #include "locations.hpp"
+#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
+#include "alloutil/al_Simulator.hpp"
 
 using namespace al;
 using namespace std;
+
 
 // struct Resource;
 // struct Factory;
 // struct Natural_Resource_Point;
 // struct MetroBuilding;
-struct Capitalist : Agent {
+struct Capitalist : Agent{
+    SoundSource *soundSource;
     int mesh_Nv;
     Vec3f movingTarget;
     int desireChangeRate;
@@ -30,6 +34,12 @@ struct Capitalist : Agent {
     float bodyRadius;
     float bodyHeight;
     float totalResourceHoldings;
+
+    //audio params
+    using Agent::pose;
+    float oscPhase = 0;
+    float oscEnv = 1;
+    float rate;
 
     Capitalist(){
         //initial params
@@ -73,6 +83,22 @@ struct Capitalist : Agent {
 		}
         body.decompress();
         body.generateNormals();
+
+        //audio
+        rate = rnd::uniform(5,11);
+        soundSource = new SoundSource;
+
+    }
+    virtual ~Capitalist(){
+
+    }
+    void onProcess(AudioIOData& io){
+        while (io()){
+            float s = sin(oscPhase * M_2PI);
+            oscPhase += rate / io.framesPerSecond();
+            if (oscPhase >= 1) oscPhase -= 1;
+            soundSource->writeSample(s * 0.2);
+        }
     }
     void run(vector<MetroBuilding>& mbs){
         //cout << capitalHoldings << "i m capitalist" << endl;
@@ -90,6 +116,10 @@ struct Capitalist : Agent {
         facingToward(movingTarget);
         update();
         moneyConsumption();
+    }
+    void updateAuidoPose(){
+        //audio
+        soundSource->pose(pose);
     }
     void moneyConsumption(){
         moneyTimer ++;

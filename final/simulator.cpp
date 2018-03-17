@@ -44,11 +44,30 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         background(Color(0.4));
         initWindow();
         //initAudio(44100);
+        
 
-        //audio
+        //set speaker layout
+        // const int numSpeakers = 2;
+        // Speaker speakers[numSpeakers] = {
+        //     Speaker(0, 45, 0),
+        //     Speaker(1, -45, 0),
+        // };
+
+        // speakerLayout.addSpeaker(speakers[0]);
+        // speakerLayout.addSpeaker(speakers[1]);
+
+        // spat = new AmbisonicsSpatializer(speakerLayout, 2, 1);
+
+        // scene.usePerSampleProcessing(false);
+        //listener = scene()->createListener(spat);
+
+        //allo audio
         AlloSphereAudioSpatializer::initAudio();
         AlloSphereAudioSpatializer::initSpatialization();
-
+        for (unsigned i = 0; i < 15; ++i) {
+            scene()->addSource(*capitalists.cs[i].soundSource);
+        }
+        scene()->usePerSampleProcessing(false);
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
@@ -148,6 +167,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             state.factory_color[i] = factories.fs[i].c;
             state.building_pos[i] = metropolis.mbs[i].position;
             state.building_size[i] = metropolis.mbs[i].scaleFactor;
+            state.building_scaleZ[i] = metropolis.mbs[i].scaleZvalue;
         } 
         for (int i = 0; i < NaturalResourcePts.nrps.size(); i ++){
             state.resource_point_pos[i] = NaturalResourcePts.nrps[i].position;
@@ -177,12 +197,17 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         capitalists.draw(g);
         miners.draw(g);
         workers.draw(g);
+
     }
-    void onSound(AudioIOData& io) {
-        while (io()) {
-            io.out(0) = 0;
-            io.out(1) = 0;
-        }
+    virtual void onSound(AudioIOData& io) {
+       for (unsigned i = 0; i < 15; ++i){
+           io.frame(0);
+           capitalists.cs[i].updateAuidoPose();
+           capitalists.cs[i].onProcess(io);
+       }
+       listener()->pose(nav());
+       io.frame(0);
+       scene()->render(io);
     }
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {
         switch(k.key()){

@@ -138,6 +138,7 @@ struct MyApp : App {
             state.factory_color[i] = factories.fs[i].c;
             state.building_pos[i] = metropolis.mbs[i].position;
             state.building_size[i] = metropolis.mbs[i].scaleFactor;
+            state.building_scaleZ[i] = metropolis.mbs[i].scaleZvalue;
         } 
         for (int i = 0; i < NaturalResourcePts.nrps.size(); i ++){
             state.resource_point_pos[i] = NaturalResourcePts.nrps[i].position;

@@ -171,6 +171,7 @@ struct MyApp : App {
                 g.pushMatrix();
                 g.translate(state.building_pos[i]);
                 g.scale(state.building_size[i]);
+                g.scale(state.building_size[i], state.building_size[i], state.building_scaleZ[i]);
                 g.draw(metro_body);
                 g.popMatrix();
             g.popMatrix();

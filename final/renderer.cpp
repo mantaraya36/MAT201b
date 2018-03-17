@@ -22,7 +22,10 @@ struct MyApp : OmniStereoGraphicsRenderer {
     int worker_nv;
     Mesh capitalist_body;
     int capitalist_nv;
+
+    //needs to be vector, cause everyone is different   
     Mesh factory_body;
+    
     Mesh metro_body;
     int metro_nv;
     Mesh resource_body;
@@ -205,7 +208,7 @@ struct MyApp : OmniStereoGraphicsRenderer {
             g.rotate(state.metro_rotate_angle);
                 g.pushMatrix();
                 g.translate(state.building_pos[i]);
-                g.scale(state.building_size[i]);
+                g.scale(state.building_size[i], state.building_size[i], state.building_scaleZ[i]);
                 g.draw(metro_body);
                 g.popMatrix();
             g.popMatrix();
