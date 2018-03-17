@@ -103,10 +103,10 @@ struct Capitalist : Agent{
 
         //audio basic
         soundSource = new SoundSource;
-        soundSource->farClip(3);
-        soundSource->farBias(0);
-        soundSource->useAttenuation(true);
-        soundSource->attenuation(5);
+        // soundSource->farClip(3);
+        // soundSource->farBias(0);
+        // soundSource->useAttenuation(true);
+        // soundSource->attenuation(3);
         SearchPaths searchPaths;
         searchPaths.addSearchPath("..");
         string filePath = searchPaths.find("diguozhuyi.wav").filepath();
@@ -117,7 +117,7 @@ struct Capitalist : Agent{
 
         //effects
         smoothRate.freq(3.14159);
-        smoothRate = -1.0;
+        smoothRate = 1;
 		shiftMod.period(120);
         mod.period(8);
         mod.phase(0.5);
@@ -136,6 +136,8 @@ struct Capitalist : Agent{
             player.rate(smoothRate());
             float source = player();
 
+
+            //experimental area
             //hilbert transformation
             gam::Complex<float> c = hil(source);
             shifter.freq(shiftMod.hann()*1000);
@@ -153,11 +155,9 @@ struct Capitalist : Agent{
             bq.freq(2500);
             float sample = bq(s);
 
-            soundSource->writeSample(sample / 2000); 
-            // float s = sin(oscPhase * M_2PI);
-            // oscPhase += rate / io.framesPerSecond();
-            // if (oscPhase >= 1) oscPhase -= 1;
-            // soundSource->writeSample(s * 0.2);
+            //write sample
+            //soundSource->writeSample(sample * 0.01);
+            soundSource->writeSample(source * 0.01); 
         }
     }
     void run(vector<MetroBuilding>& mbs){
