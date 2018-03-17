@@ -8,9 +8,11 @@
 struct Capitalist_Entity{
     vector<Capitalist> cs;
     int initial_num;
+
     Capitalist_Entity(){
         initial_num = 15;
         cs.resize(initial_num);
+
     }
     Capitalist operator[] (const int index) const{
         return cs[index];
@@ -20,6 +22,7 @@ struct Capitalist_Entity{
             cs[i].capitalistID = i;
         }
     }
+
     void getResource(vector<Miner>& miners){
     
         for (int j = miners.size() - 1; j >= 0; j --){

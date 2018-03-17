@@ -7,11 +7,15 @@
 #include "helper.hpp"
 #include "agent_base.hpp"
 #include "locations.hpp"
+#include "Gamma/Filter.h"
+#include "Gamma/Oscillator.h"
+#include "Gamma/SamplePlayer.h"
 #include "alloutil/al_AlloSphereAudioSpatializer.hpp"
 #include "alloutil/al_Simulator.hpp"
 
 using namespace al;
 using namespace std;
+using namespace gam;
 
 
 // struct Resource;
@@ -40,6 +44,15 @@ struct Capitalist : Agent{
     float oscPhase = 0;
     float oscEnv = 1;
     float rate;
+    double audioTimer;
+    SamplePlayer<float, gam::ipl::Linear, phsInc::Loop> player;
+    gam::OnePole<> smoothRate;
+
+    //effects
+    LFO<> osc;
+	LFO<> shiftMod;
+	Hilbert<> hil;
+	CSine<> shifter;
 
     Capitalist(){
         //initial params
@@ -85,8 +98,23 @@ struct Capitalist : Agent{
         body.generateNormals();
 
         //audio
-        rate = rnd::uniform(5,11);
         soundSource = new SoundSource;
+        soundSource->farClip(0.6);
+        soundSource->useAttenuation(true);
+        //soundSource->attenuation(0.3);
+        SearchPaths searchPaths;
+        searchPaths.addSearchPath("..");
+        string filePath = searchPaths.find("diguozhuyi.wav").filepath();
+        player.load(filePath.c_str());
+        player.rate(0.1);
+        audioTimer = 0;
+        smoothRate.freq(3.14159);
+        smoothRate = 1.0;
+
+        //effects
+        osc.freq(100);
+		shiftMod.period(10);
+		shifter.freq(100);
 
     }
     virtual ~Capitalist(){
@@ -94,10 +122,17 @@ struct Capitalist : Agent{
     }
     void onProcess(AudioIOData& io){
         while (io()){
-            float s = sin(oscPhase * M_2PI);
-            oscPhase += rate / io.framesPerSecond();
-            if (oscPhase >= 1) oscPhase -= 1;
-            soundSource->writeSample(s * 0.2);
+            player.rate(smoothRate());
+            float s = player() * 0.5;
+            gam::Complex<float> c = hil(s);
+            shifter.freq(shiftMod.hann()*1000);
+			c *= shifter();
+            float sf = c.r + c.i;
+            soundSource->writeSample(sf * 0.3);
+            // float s = sin(oscPhase * M_2PI);
+            // oscPhase += rate / io.framesPerSecond();
+            // if (oscPhase >= 1) oscPhase -= 1;
+            // soundSource->writeSample(s * 0.2);
         }
     }
     void run(vector<MetroBuilding>& mbs){
@@ -116,6 +151,38 @@ struct Capitalist : Agent{
         facingToward(movingTarget);
         update();
         moneyConsumption();
+        //updateSamplePlayer();
+    }
+    void updateSamplePlayer(){
+        audioTimer += 1 / 60;
+        if (audioTimer > 5.0) {
+            audioTimer -= 5.0;
+            float begin, end;
+            for (int t = 0; t < 100; t++) {
+                begin = rnd::uniform(player.frames());
+                end = rnd::uniform(player.frames());
+
+                if (abs(player[int(begin)] - player[int(end)]) < 0.125) break;
+            }
+            if (begin > end) {
+                float t = begin;
+                begin = end;
+                end = t;
+            }
+            // tell the player the begin and end points
+            //
+            player.min(begin);
+            player.max(end);
+            // set playback rate. negative rates play in reverse.
+            //
+            float r = pow(2, rnd::uniformS(1.0f));
+            if (rnd::prob(0.3)) r *= -1;
+            smoothRate = r;
+
+            // start sample from beginning
+            //
+            player.reset();
+        }
     }
     void updateAuidoPose(){
         //audio
