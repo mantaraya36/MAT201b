@@ -51,8 +51,12 @@ struct Capitalist : Agent{
     //effects
     LFO<> osc;
 	LFO<> shiftMod;
+    LFO<> mod;
 	Hilbert<> hil;
 	CSine<> shifter;
+    Biquad<> bq;
+    gam::OnePole<> onePole;
+    Accum<> tmr;
 
     Capitalist(){
         //initial params
@@ -97,24 +101,31 @@ struct Capitalist : Agent{
         body.decompress();
         body.generateNormals();
 
-        //audio
+        //audio basic
         soundSource = new SoundSource;
-        soundSource->farClip(0.6);
+        soundSource->farClip(3);
+        soundSource->farBias(0);
         soundSource->useAttenuation(true);
-        //soundSource->attenuation(0.3);
+        soundSource->attenuation(5);
         SearchPaths searchPaths;
         searchPaths.addSearchPath("..");
         string filePath = searchPaths.find("diguozhuyi.wav").filepath();
         player.load(filePath.c_str());
         player.rate(0.1);
         audioTimer = 0;
-        smoothRate.freq(3.14159);
-        smoothRate = 1.0;
+        
 
         //effects
-        osc.freq(100);
-		shiftMod.period(10);
-		shifter.freq(100);
+        smoothRate.freq(3.14159);
+        smoothRate = -1.0;
+		shiftMod.period(120);
+        mod.period(8);
+        mod.phase(0.5);
+		shifter.freq(200);
+        bq.res(4);
+        bq.level(2);
+        tmr.period(5);
+        tmr.phaseMax();
 
     }
     virtual ~Capitalist(){
@@ -123,12 +134,26 @@ struct Capitalist : Agent{
     void onProcess(AudioIOData& io){
         while (io()){
             player.rate(smoothRate());
-            float s = player() * 0.5;
-            gam::Complex<float> c = hil(s);
+            float source = player();
+
+            //hilbert transformation
+            gam::Complex<float> c = hil(source);
             shifter.freq(shiftMod.hann()*1000);
-			c *= shifter();
-            float sf = c.r + c.i;
-            soundSource->writeSample(sf * 0.3);
+		    c *= shifter();
+            float sr = c.r;
+            float si = c.i;
+
+            //one pole to control the tone
+            float cutoff = scl::pow3(mod.triU()) * 2000;
+            onePole.freq(300 + cutoff);
+            float s = onePole(sr) * 0.5 + onePole(si) * 0.5;
+            
+            //biquad for LOW PASS
+            bq.type(LOW_PASS);
+            bq.freq(2500);
+            float sample = bq(s);
+
+            soundSource->writeSample(sample / 2000); 
             // float s = sin(oscPhase * M_2PI);
             // oscPhase += rate / io.framesPerSecond();
             // if (oscPhase >= 1) oscPhase -= 1;
@@ -186,7 +211,7 @@ struct Capitalist : Agent{
     }
     void updateAuidoPose(){
         //audio
-        soundSource->pose(pose);
+        soundSource->pose(Agent::pose);
     }
     void moneyConsumption(){
         moneyTimer ++;
