@@ -143,12 +143,12 @@ struct Capitalist : Agent{
             float sr = c.r;
             float si = c.i;
 
-            //one pole to control the tone
+            //one pole
             float cutoff = scl::pow3(mod.triU()) * 2000;
             onePole.freq(300 + cutoff);
             float s = onePole(sr) * 0.5 + onePole(si) * 0.5;
             
-            //biquad for LOW PASS
+            //biquad
             bq.type(LOW_PASS);
             bq.freq(2500);
             float sample = bq(s);
