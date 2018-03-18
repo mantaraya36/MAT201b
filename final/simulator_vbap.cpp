@@ -182,7 +182,9 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         //scene()->usePerSampleProcessing(false);
         //audioIO().device(AudioDevice("TASCAM"));
         //initAudio(44100, BLOCK_SIZE);
-        App::initAudio(44100, BLOCK_SIZE, 4, 0);
+        //App::audioIO().device(AudioDevice("ECHO X5"));
+        AlloSphereAudioSpatializer::initAudio("ECHO X5", 44100, BLOCK_SIZE, 60, 60);
+        //App::initAudio(44100, BLOCK_SIZE, 4, 0);
         //cout << "Using audio device: " << endl;
         //audioIO().print();
         fflush(stdout);
