@@ -202,13 +202,14 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     virtual void onSound(AudioIOData& io) {
         gam::Sync::master().spu(AlloSphereAudioSpatializer::audioIO().fps());
        for (unsigned i = 0; i < 15; ++i){
-           io.frame(0);
+           
            capitalists.cs[i].updateAuidoPose();
            capitalists.cs[i].onProcess(io);
+           io.frame(0);
        }
-       listener()->pose(nav());
-       io.frame(0);
-       scene()->render(io);
+       //listener()->pose(nav());
+       //io.frame(0);
+       //scene()->render(io);
    
     }
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {

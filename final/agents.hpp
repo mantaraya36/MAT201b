@@ -8,6 +8,10 @@
 #include "agent_base.hpp"
 #include "locations.hpp"
 #include "Gamma/Filter.h"
+#include "Gamma/DFT.h"
+#include "Gamma/Effects.h"
+#include "Gamma/Delay.h"
+#include "Gamma/Noise.h"
 #include "Gamma/Oscillator.h"
 #include "Gamma/SamplePlayer.h"
 #include "alloutil/al_AlloSphereAudioSpatializer.hpp"
@@ -15,8 +19,23 @@
 
 using namespace al;
 using namespace std;
-using namespace gam;
 
+class Vibrato{
+public:
+	Vibrato(float modAmount=1./400, float modFreq=5)
+	:	modAmount(modAmount),
+		delay(0.1, 0), mod(modFreq)
+	{}
+	
+	float operator()(float i){
+		delay.delay(mod.hann()*modAmount + 0.0001);
+		return delay(i);
+	}
+
+	float modAmount;
+	gam::Delay<> delay;
+	gam::LFO<> mod;
+};
 
 // struct Resource;
 // struct Factory;
@@ -45,18 +64,22 @@ struct Capitalist : Agent{
     float oscEnv = 1;
     float rate;
     double audioTimer;
-    SamplePlayer<float, gam::ipl::Linear, phsInc::Loop> player;
+    gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
     gam::OnePole<> smoothRate;
 
-    //effects
-    LFO<> osc;
-	LFO<> shiftMod;
-    LFO<> mod;
-	Hilbert<> hil;
-	CSine<> shifter;
-    Biquad<> bq;
+    //gamma effects
+    //gam::LFO<> osc;
+	gam::LFO<> shiftMod;
+    gam::LFO<> mod;
+	gam::Hilbert<> hil;
+	gam::CSine<> shifter;
+    gam::Biquad<> bq;
     gam::OnePole<> onePole;
-    Accum<> tmr;
+    gam::Accum<> tmr;
+    gam::NoisePink<> s_noise;
+    gam::Delay<float, gam::ipl::Trunc> delay;
+    Vibrato vibrato;
+
 
     Capitalist(){
         //initial params
@@ -109,23 +132,33 @@ struct Capitalist : Agent{
         // soundSource->attenuation(3);
         SearchPaths searchPaths;
         searchPaths.addSearchPath("..");
-        string filePath = searchPaths.find("diguozhuyi.wav").filepath();
+        string filePath = searchPaths.find("socialismgood.wav").filepath();
         player.load(filePath.c_str());
-        player.rate(0.1);
         audioTimer = 0;
         
 
         //effects
+        //for sample
         smoothRate.freq(3.14159);
-        smoothRate = 1;
-		shiftMod.period(120);
-        mod.period(8);
+        smoothRate = 0.07;
+
+        //for hilbert
+		shiftMod.period(16);
+        shifter.freq(200);
+
+        //for one pole
+        mod.period(120);
         mod.phase(0.5);
-		shifter.freq(200);
+		
+        //biquad
         bq.res(4);
         bq.level(2);
+
+        //delay
         tmr.period(5);
         tmr.phaseMax();
+        delay.maxDelay(0.4);
+        delay.delay(0.2);
 
     }
     virtual ~Capitalist(){
@@ -136,28 +169,42 @@ struct Capitalist : Agent{
             player.rate(smoothRate());
             float source = player();
 
-
             //experimental area
+            
             //hilbert transformation
             gam::Complex<float> c = hil(source);
-            shifter.freq(shiftMod.hann()*1000);
+            shifter.freq(shiftMod.hann()*200);
 		    c *= shifter();
             float sr = c.r;
             float si = c.i;
 
             //one pole
-            float cutoff = scl::pow3(mod.triU()) * 2000;
-            onePole.freq(300 + cutoff);
-            float s = onePole(sr) * 0.5 + onePole(si) * 0.5;
+            float cutoff = gam::scl::pow3(mod.triU()) * 2000;
+            onePole.freq(1000 + cutoff * 0.2);
+            //float s = onePole(sr) * 0.3 + onePole(si) * 0.3;
             
+            float s = onePole(sr + si) * 0.2 + s_noise() * gam::scl::pow3(mod.triU()) * 0.06;
+            s = vibrato(s);
+
             //biquad
-            bq.type(LOW_PASS);
-            bq.freq(2500);
+            bq.type(gam::BAND_PASS);
+            bq.freq(500 + cutoff * 0.08);
             float sample = bq(s);
 
+            //delay
+            // if (tmr()) {
+            //     sample = bq(s);
+            // }
+            // sample += delay(sample + delay()*0.2);
+            //sample += delay(sample) + delay.read(0.15) + delay.read(0.39);
+            
             //write sample
-            //soundSource->writeSample(sample * 0.01);
-            soundSource->writeSample(source * 0.01); 
+            //soundSource->writeSample(sample);
+            //soundSource->writeSample(source * 0.01); 
+
+            //for bypass only
+            io.out(0) += sample;
+            io.out(1) += sample;
         }
     }
     void run(vector<MetroBuilding>& mbs){
@@ -176,7 +223,7 @@ struct Capitalist : Agent{
         facingToward(movingTarget);
         update();
         moneyConsumption();
-        //updateSamplePlayer();
+        updateSamplePlayer();
     }
     void updateSamplePlayer(){
         audioTimer += 1 / 60;
