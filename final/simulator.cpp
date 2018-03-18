@@ -39,6 +39,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     //renderMode
     int renderModeSwitch = 1;
 
+    //cameraMode
+    int cameraSwitch = 0;
     //shader
     ShaderProgram shader;
     float phase;
@@ -54,7 +56,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         //lens().far(400);                 // set the far clipping plane
         
         //background(Color(0.07));
-        background(HSV(0.1, 0.5, 0.5));
+        background(Color(1, 0.85, 0.4, 1.0));
         initWindow();
         //initAudio(44100);
         
@@ -180,6 +182,20 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         //locational behaviors
         factories.drawLinks(capitalists);
 
+        //camera
+        if (cameraSwitch == 1){
+            nav().pos() = capitalists.cs[0].pose.pos() + Vec3f(0,0,-4);
+            //nav().faceToward(capitalists.cs[0].movingTarget, 0.3*dt);
+        } else if (cameraSwitch == 2) {
+            nav().pos() = workers.workers[0].pose.pos()+ Vec3f(0,0,-4);
+            //nav().faceToward(factories.fs[workers.workers[0].id_ClosestFactory].position, 0.3*dt);
+        } else if (cameraSwitch == 3) {
+            nav().pos() = miners.ms[0].pose.pos() + Vec3f(0,0,-4);
+            //nav().faceToward(NaturalResourcePts.nrps[miners.ms[0].id_ClosestNRP].position, 0.3 * dt);
+        } else {
+            
+        }
+
         //debug
         // cout << workers[0].id_ClosestFactory << " i m heading to " << endl;
         // cout << workers[0].distToClosestFactory << " this much far " << endl;
@@ -298,13 +314,16 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     }
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {
         switch(k.key()){
-            case '4': factories.drawingLinks = !factories.drawingLinks; break;
-            case '5': miners.drawingLinks = !miners.drawingLinks; break;
-            case '6': workers.drawingLinks = !workers.drawingLinks;break;
+            case '7': factories.drawingLinks = !factories.drawingLinks; break;
+            case '8': miners.drawingLinks = !miners.drawingLinks; break;
+            case '9': workers.drawingLinks = !workers.drawingLinks;break;
             case '1': renderModeSwitch = 1; break;
             case '2': renderModeSwitch = 2; break;
             case '3': renderModeSwitch = 3; break;
-            case '0': nav().pos(0,0,80);nav().faceToward(Vec3f(0,0,0), 1);
+            case '4': cameraSwitch = 1; break;
+            case '5': cameraSwitch = 2; break;
+            case '6': cameraSwitch = 3; break;
+            case '0': cameraSwitch = 0; nav().pos(0,0,80);nav().faceToward(Vec3f(0,0,0), 1);
         }
     }
 

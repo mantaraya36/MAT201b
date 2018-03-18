@@ -56,7 +56,7 @@ struct MyApp : OmniStereoGraphicsRenderer {
         //initAudio(44100);
 
         //if pure color
-        omni().clearColor() = HSV(0.1, 0.5, 0.5);
+        omni().clearColor() = Color(1, 0.85, 0.4, 1.0);
 
         Mat4f xfm;
         phase = 0;

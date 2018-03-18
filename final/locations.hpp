@@ -104,7 +104,7 @@ struct MetroBuilding : Location{
         g.scale(scaleFactor, scaleFactor, scaleZvalue);
         g.color(c);
         g.draw(mesh);
-        g.scale(1.2);
+        g.scale(1.4);
         g.draw(mesh_wire);
         g.popMatrix();
     }
@@ -152,7 +152,7 @@ struct Factory : Location{
         //mesh body
         
         addTorus(mesh, meshInnerRadius, meshOuterRadius, r_int(3, 6), r_int(3, 6));
-        addTorus(mesh_wire, meshInnerRadius * 1.2, meshOuterRadius * 1.2, r_int(3, 6), r_int(3, 6));
+        addTorus(mesh_wire, meshInnerRadius * 1.4, meshOuterRadius * 1.4, r_int(3, 6), r_int(3, 6));
         mesh.decompress();
         mesh.generateNormals();
         mesh_wire.primitive(Graphics::LINE_LOOP);
@@ -330,7 +330,7 @@ struct Natural_Resource_Point : Location{
         position = position * (NaturalRadius - FactoryRadius) + temp_pos.normalize(FactoryRadius + CirclePadding * 2.0);
         //position = FactoryRadius + CirclePadding + r() * (NaturalRadius - FactoryRadius);
         mesh_Nv = addDodecahedron(mesh, meshRadius);
-        addDodecahedron(mesh_wire, meshRadius * 1.2);
+        addDodecahedron(mesh_wire, meshRadius * 1.4);
 		for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
 			mesh.color(HSV(f*0.1,1,1));
