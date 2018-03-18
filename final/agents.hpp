@@ -20,6 +20,21 @@
 using namespace al;
 using namespace std;
 
+// SampleLooper from Karl
+//
+typedef gam::SamplePlayer<float, gam::ipl::Cubic, gam::tap::Wrap>
+    GammaSamplePlayerFloatCubicWrap;
+
+struct DynamicSamplePlayer : GammaSamplePlayerFloatCubicWrap {
+  DynamicSamplePlayer() : GammaSamplePlayerFloatCubicWrap() { zero(); }
+  DynamicSamplePlayer(const DynamicSamplePlayer& other) {}
+
+  // need this for some old version of gcc
+  DynamicSamplePlayer& operator=(const DynamicSamplePlayer& other) {
+    return *this;
+  }
+};
+
 class Vibrato{
 public:
 	Vibrato(float modAmount=1./400, float modFreq=5)
@@ -66,6 +81,7 @@ struct Capitalist : Agent{
     double audioTimer;
     gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
     gam::OnePole<> smoothRate;
+    DynamicSamplePlayer v_player;
 
     //gamma effects
     //gam::LFO<> osc;
@@ -135,6 +151,7 @@ struct Capitalist : Agent{
         searchPaths.addSearchPath("..");
         string filePath = searchPaths.find("socialismgood.wav").filepath();
         player.load(filePath.c_str());
+        v_player.load(filePath.c_str());
         audioTimer = 0;
         
 

@@ -6,9 +6,15 @@
 #include "location_managers.hpp"
 #include "common.hpp"
 #include "alloutil/al_AlloSphereAudioSpatializer.hpp"
+#include "alloutil/al_AlloSphereSpeakerLayout.hpp"
+#include "allocore/sound/al_Vbap.hpp"
+#include "Gamma/Filter.h"
+#include "Gamma/SamplePlayer.h"
 #include "alloutil/al_Simulator.hpp"
 #include "Cuttlebone/Cuttlebone.hpp"
 
+#define MAXIMUM_NUMBER_OF_SOUND_SOURCES (300)
+#define BLOCK_SIZE (2048)
 using namespace al;
 using namespace std;
 
@@ -48,8 +54,16 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     //background noise
     Mesh geom;
 
+    //Vbap audio spatializer
+    AudioScene vbap_scene;
+    SpeakerLayout* speakerLayout;
+    Spatializer* panner;
+    Listener* listener;
+    SoundSource source[MAXIMUM_NUMBER_OF_SOUND_SOURCES];
+
     MyApp() : maker(Simulator::defaultBroadcastIP()),
-        InterfaceServerClient(Simulator::defaultInterfaceServerIP())         {
+        InterfaceServerClient(Simulator::defaultInterfaceServerIP()), vbap_scene(BLOCK_SIZE)        {
+        bool inSphere = system("ls /alloshare >> /dev/null 2>&1") == 0;
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 50);             // place the viewer //80
         //lens().far(400);                 // set the far clipping plane
@@ -126,12 +140,49 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         //listener = scene()->createListener(spat);
 
         //allo audio
-        AlloSphereAudioSpatializer::initAudio();
+        //AlloSphereAudioSpatializer::initAudio();
         AlloSphereAudioSpatializer::initSpatialization();
-        for (unsigned i = 0; i < 15; ++i) {
-            scene()->addSource(*capitalists.cs[i].soundSource);
+        for (unsigned i = 0; i < capitalists.cs.size(); ++i) {
+            //scene()->addSource(*capitalists.cs[i].soundSource);
+            capitalists.cs[i].v_player.rate(1);
         }
-        scene()->usePerSampleProcessing(false);
+        if (!inSphere){
+            speakerLayout = new HeadsetSpeakerLayout();
+            panner = new StereoPanner(*speakerLayout);
+            //panner->print();
+            //panner = new Vbap(*speakerLayout, true);
+            panner->print();
+        } else {
+            speakerLayout = new AlloSphereSpeakerLayout();
+            panner = new Vbap(*speakerLayout);
+            panner->print();
+
+        }
+        speakerLayout = new AlloSphereSpeakerLayout();
+        panner = new Vbap(*speakerLayout);
+        panner->print();
+        listener = vbap_scene.createListener(panner);
+        listener->compile(); // XXX need this?
+        float near = 0.2;
+        float listenRadius = 60;
+        for (int i = 0; i < capitalists.cs.size(); i++) {
+            source[i].nearClip(near);
+            source[i].farClip(listenRadius);
+            source[i].law(ATTEN_LINEAR);
+            //source[i].law(ATTEN_INVERSE_SQUARE);
+            source[i].dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
+            //source[i].law(ATTEN_INVERSE);
+            vbap_scene.addSource(source[i]);
+        }
+        vbap_scene.usePerSampleProcessing(false);
+        //scene()->usePerSampleProcessing(false);
+        //audioIO().device(AudioDevice("TASCAM"));
+        //initAudio(44100, BLOCK_SIZE);
+        App::initAudio(44100, BLOCK_SIZE, 4, 0);
+        //cout << "Using audio device: " << endl;
+        //audioIO().print();
+        fflush(stdout);
+
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
@@ -300,12 +351,39 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     }
     virtual void onSound(AudioIOData& io) {
         gam::Sync::master().spu(AlloSphereAudioSpatializer::audioIO().fps());
-        for (unsigned i = 0; i < 15; ++i){
-           
-           capitalists.cs[i].updateAuidoPose();
-           capitalists.cs[i].onProcess(io);
-           io.frame(0);
+        float x = nav().pos().x;
+        float y = nav().pos().y;
+        float z = nav().pos().z;
+
+        //vector<unsigned> n;
+        for (int i = 0; i < capitalists.cs.size(); i++){
+            source[i].pos(capitalists.cs[i].pose.pos().x,capitalists.cs[i].pose.pos().y, capitalists.cs[i].pose.pos().z);
+        //double d = (source[i].pos() - listener->pos()).mag();
+        //double a = source[i].attenuation(d);
+        //double db = log10(a) * 20.0;
+        //cout << d << "," << a << "," << db << endl;
+        
+      }
+cout << source[0].pos() << " source 0 pos" << endl;
+        listener->pos(x, y, z);
+        int numFrames = io.framesPerBuffer();
+        for (int k = 0; k < numFrames; k++) {
+            for (int i = 0; i < capitalists.cs.size(); i++) {
+                    //io.frame(0);
+                    float f = 0;
+                    f = capitalists.cs[i].v_player();
+                    double d = isnan(f) ? 0.0 : (double)f; // XXX need this nan check?
+                    source[i].writeSample(d);
+                    io.frame(0);
+            }
         }
+        vbap_scene.render(io);
+        // for (unsigned i = 0; i < 15; ++i){
+           
+        //    capitalists.cs[i].updateAuidoPose();
+        //    capitalists.cs[i].onProcess(io);
+        //    io.frame(0);
+        // }
         //listener()->pose(nav());
         //io.frame(0);
         //scene()->render(io);

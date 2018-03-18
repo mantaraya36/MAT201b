@@ -235,16 +235,16 @@ struct MarketManager{
         averageFactoryMaterialStocks = sum7 / factories.size();
 
 
-        cout << averageCapitalistWealth << " = avg cp wealth  " << averageWorkerWealth << "  = avg wk wealth " << endl;
-        cout << averageMinerWealth << " = avg ms wealth  " << averageFactoryGrossProfits << " =  avg gross profits" << endl;
-        cout << averageFactoryCapitalReserve << " = avg capital reserve in fs " << averageWorkersPayCheck << " = avg paycheck" << endl; 
-        cout << resourceUnitPrice << " = resource unit price  "<< laborUnitPrice << " = labor unit price" <<endl;
-        cout << averageFactoryMaterialStocks << " = avg material stock " << averageCapitalistResource << "  = avg captialits resource holds"<<endl;
-        cout << liveFactories << " = live Factories operating" << endl;
-        cout << richCapitalists << " rich capitalists || " << poorCapitalists << " poor capitalist, out of  " << liveCapitalists << " live capitalists" << endl;
-        cout << richMiners << " rich Miners || " << poorMiners << " poor miners, out of " << liveMiners << " live miners" << endl;
-        cout << richWorkers << " rich workers || " << poorWorkers << " poor Workers, out of " << liveWorkers << " live workers, also " << jobHuntingWorkers << " need a job " <<endl;
-        cout << averageMinerPoetryLevel << "= avg Miner Poety " << averageWorkerPoetryLevel << " = avg Worker Poetry " << averageCapitalistPoetryLevel << " = avg Capitalist poetry" << endl;
+        // cout << averageCapitalistWealth << " = avg cp wealth  " << averageWorkerWealth << "  = avg wk wealth " << endl;
+        // cout << averageMinerWealth << " = avg ms wealth  " << averageFactoryGrossProfits << " =  avg gross profits" << endl;
+        // cout << averageFactoryCapitalReserve << " = avg capital reserve in fs " << averageWorkersPayCheck << " = avg paycheck" << endl; 
+        // cout << resourceUnitPrice << " = resource unit price  "<< laborUnitPrice << " = labor unit price" <<endl;
+        // cout << averageFactoryMaterialStocks << " = avg material stock " << averageCapitalistResource << "  = avg captialits resource holds"<<endl;
+        // cout << liveFactories << " = live Factories operating" << endl;
+        // cout << richCapitalists << " rich capitalists || " << poorCapitalists << " poor capitalist, out of  " << liveCapitalists << " live capitalists" << endl;
+        // cout << richMiners << " rich Miners || " << poorMiners << " poor miners, out of " << liveMiners << " live miners" << endl;
+        // cout << richWorkers << " rich workers || " << poorWorkers << " poor Workers, out of " << liveWorkers << " live workers, also " << jobHuntingWorkers << " need a job " <<endl;
+        // cout << averageMinerPoetryLevel << "= avg Miner Poety " << averageWorkerPoetryLevel << " = avg Worker Poetry " << averageCapitalistPoetryLevel << " = avg Capitalist poetry" << endl;
     }
     void updatePrice(Capitalist_Entity& capitalists, Worker_Union& workers, Miner_Group& miners){
         minerPovertyRate = poorMiners / liveMiners;

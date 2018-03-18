@@ -186,9 +186,6 @@ struct MyApp : OmniStereoGraphicsRenderer {
             return;
         }
         
-        //cout << "heard?" << endl;
-        // capitalist_lines.resize(state.numCapitalists);
-        // worker_lines.resize(state.numWorkers);
         for (int i = 0; i < state.numCapitalists; i ++){
             capitalist_lines[i].vertices()[0] = state.capitalist_lines_posA[i];
             capitalist_lines[i].vertices()[1] = state.capitalist_lines_posB[i];
