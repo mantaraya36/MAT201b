@@ -206,8 +206,6 @@ struct MyApp : OmniStereoGraphicsRenderer {
         phase = state.phase;
         renderModeSwitch = state.renderModeSwitch;
 
-        omni().clearColor() = Color(sin(dt) * 0.5 + 0.5);
-
     }
     void onDraw(Graphics& g) {
         if (renderModeSwitch == 1){
