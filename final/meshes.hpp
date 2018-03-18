@@ -13,6 +13,13 @@ struct Line : Mesh{
         color(0,1,1);
     }
 };
+
+struct Factory_Building : Mesh {
+
+    Factory_Building(){
+       
+    }
+};
 struct Poem : Mesh{
     Poem(){
 

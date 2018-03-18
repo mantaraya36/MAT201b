@@ -36,15 +36,56 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     State state;
     cuttlebone::Maker<State> maker;
 
+    //shader
+    ShaderProgram shader;
+    float phase;
+
+
     MyApp() : maker(Simulator::defaultBroadcastIP()),
         InterfaceServerClient(Simulator::defaultInterfaceServerIP())         {
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 50);             // place the viewer //80
-        lens().far(400);                 // set the far clipping plane
-        background(Color(0.4));
+        //lens().far(400);                 // set the far clipping plane
+        
+        //background(Color(0.07));
+        background(HSV(0.1, 0.5, 0.5));
         initWindow();
         //initAudio(44100);
         
+        //shader
+        phase = 0;
+        lens().near(0.1).far(150);        //for fog
+        shader.compile(
+		R"(
+			/* 'fogCurve' determines the distribution of fog between the near and far planes.
+			Positive values give more dense fog while negative values give less dense
+			fog. A value of	zero results in a linear distribution. */
+			uniform float fogCurve;
+
+			/* The fog amount in [0,1] passed to the fragment shader. */
+			varying float fogFactor;
+
+			void main(){
+				gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+				gl_FrontColor = gl_Color;
+
+				float z = gl_Position.z;
+				//float z = gl_FragCoord.z / gl_FragCoord.w; /* per-frament fog would use this */
+				fogFactor = (z - gl_Fog.start) * gl_Fog.scale;
+				fogFactor = clamp(fogFactor, 0., 1.);
+				if(fogCurve != 0.){
+					fogFactor = (1. - exp(-fogCurve*fogFactor))/(1. - exp(-fogCurve));
+				}
+			}
+		)",
+		R"(
+			varying float fogFactor;
+
+			void main(){
+				gl_FragColor = mix(gl_Color, gl_Fog.color, fogFactor);
+			}
+		)"
+		);
 
         //set speaker layout
         // const int numSpeakers = 2;
@@ -78,6 +119,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         
     }
     void onAnimate(double dt) {
+        //shader phase
+        phase += 0.00017; if(phase>=1) --phase;
         //this updates your nav, especially you use a controller / joystick
         while (InterfaceServerClient::oscRecv().recv()){
 
@@ -186,17 +229,22 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
    
     }
     void onDraw(Graphics& g) {
-        material();
-        light();
-        //glEnable(GL_POINT_SPRITE);
         g.blendAdd();
-        //draw all the entities
-        metropolis.draw(g);
-        factories.draw(g);
-        NaturalResourcePts.draw(g);
-        capitalists.draw(g);
-        miners.draw(g);
-        workers.draw(g);
+        //g.fog(lens().far(), lens().near()+2, background());
+        //shader.begin();
+			//shader.uniform("fogCurve", 4*cos(8*phase*6.2832));
+            material();
+            light();
+            //glEnable(GL_POINT_SPRITE);
+            
+            //draw all the entities
+            metropolis.draw(g);
+            factories.draw(g);
+            NaturalResourcePts.draw(g);
+            capitalists.draw(g);
+            miners.draw(g);
+            workers.draw(g);
+        //shader.end();
 
     }
     virtual void onSound(AudioIOData& io) {

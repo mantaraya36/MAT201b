@@ -7,7 +7,8 @@ struct Location{
     Vec3f position;
     float scaleFactor;
     Color c;
-    Mesh mesh;
+    MeshVBO mesh;
+    MeshVBO mesh_wire;
 };
 
 #endif

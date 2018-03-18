@@ -467,7 +467,7 @@ struct Miner : Agent {
         mesh_Nv = addCone(body, bodyRadius, Vec3f(0,0,bodyHeight));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
-			body.color(HSV(f*0.05,0.9,1));
+			body.color(HSV(f*0.1+0.2,1,1));
 		}
         addCube(resource, 4);
         resource.generateNormals();
@@ -851,7 +851,7 @@ struct Worker : Agent {
         mesh_Nv = addCone(body, bodyRadius, Vec3f(0,0,bodyHeight));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
-			body.color(HSV(f*0.65,0.9,1));
+			body.color(HSV(f*0.2+0.4,1,1));
 		}
         body.decompress();
         body.generateNormals();

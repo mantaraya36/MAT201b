@@ -76,10 +76,13 @@ struct MetroBuilding : Location{
         scaleTimer = 0;
         
         mesh_Nv = addCube(mesh);
+        addCube(mesh_wire);
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
 			mesh.color(HSV(0.06 + f*0.1,0.8,1));
+            mesh_wire.color(HSV(0.06 + f*0.1,0.8,1));
 		}
+        mesh_wire.primitive(Graphics::LINE_LOOP);
         mesh.decompress();
         mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
@@ -101,6 +104,8 @@ struct MetroBuilding : Location{
         g.scale(scaleFactor, scaleFactor, scaleZvalue);
         g.color(c);
         g.draw(mesh);
+        g.scale(scaleFactor * 1.2, scaleFactor * 1.2, scaleZvalue * 1.2);
+        g.draw(mesh_wire);
         g.popMatrix();
     }
 };
@@ -143,9 +148,15 @@ struct Factory : Location{
         position = r();
         temp_pos = position;
         position = position * (FactoryRadius - MetroRadius) + temp_pos.normalize(MetroRadius + CirclePadding);
+        
+        //mesh body
+        
         addTorus(mesh, meshInnerRadius, meshOuterRadius, r_int(3, 6), r_int(3, 6));
+        addTorus(mesh_wire, meshInnerRadius, meshOuterRadius, r_int(3, 6), r_int(3, 6));
         mesh.generateNormals();
+        mesh_wire.primitive(Graphics::LINES);
         c = HSV(0.56, 0.3, 1);
+        
         angle1 = 0.0f;
         angle2 = rnd::uniform(0, 360); // face toward?
         facing_center = Quatd::getRotationTo( Vec3f(q.toVectorZ().normalize()), Vec3f(Vec3f(0,0,0) - position).normalize()) * facing_center;
@@ -285,6 +296,8 @@ struct Factory : Location{
         g.scale(scaleFactor);
         g.color(c);
         g.draw(mesh);
+        g.scale(scaleFactor * 1.2);
+        g.draw(mesh_wire);
         g.popMatrix();
     }
 };
@@ -321,8 +334,9 @@ struct Natural_Resource_Point : Location{
 			float f = float(i)/mesh_Nv;
 			mesh.color(HSV(f*0.1,1,1));
 		}
-        mesh.decompress();
-        mesh.generateNormals();
+        mesh.primitive(Graphics::LINES);
+        //mesh.decompress();
+        //mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
 
 
