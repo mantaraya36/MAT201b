@@ -39,7 +39,7 @@ struct MyApp : App {
     MyApp() : maker("127.0.0.1") {
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 80);             // place the viewer //80
-        lens().far(400);                 // set the far clipping plane
+        lens().near(0.1).far(150);           // set the far clipping plane
         background(Color(0.4));
         initWindow();
         initAudio(44100);
@@ -53,7 +53,6 @@ struct MyApp : App {
         
     }
     void onAnimate(double dt) {
-        maker.set(state);
         //market
         marketManager.populationMonitor(capitalists, workers, miners, factories.fs);
         marketManager.capitalMonitor(capitalists, workers, miners, factories.fs);
@@ -114,6 +113,8 @@ struct MyApp : App {
             state.miner_poetryHoldings[i] = miners.ms[i].poetryHoldings;
             state.miner_bankrupted[i] = miners.ms[i].bankrupted();
             state.miner_fullpack[i] = miners.ms[i].fullpack;
+            state.miner_lines_posA[i] = miners.lines[i].vertices()[0];
+            state.miner_lines_posB[i] = miners.lines[i].vertices()[1];
     
         }
         for (int i = 0; i < workers.workers.size(); i ++){
@@ -152,6 +153,8 @@ struct MyApp : App {
         }
         state.metro_rotate_angle = metropolis.angle;
         state.nav_pose = nav();
+
+        maker.set(state);
    
     }
     void onDraw(Graphics& g) {

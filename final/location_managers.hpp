@@ -151,6 +151,7 @@ struct Factories {
         for (int i = fs.size() - 1; i >= 0; i --){
             Factory& f = fs[i];
             f.draw(g);
+            g.color(1,0.55,0.4);
             g.draw(lines[i]);
         }
         
@@ -161,7 +162,7 @@ struct NaturalResourcePointsCollection {
     vector<Natural_Resource_Point> nrps;
     int initial_num;
     NaturalResourcePointsCollection(){
-        initial_num = 25;
+        initial_num = 40;
         nrps.resize(initial_num);
     }
 

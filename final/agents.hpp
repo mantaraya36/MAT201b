@@ -116,10 +116,11 @@ struct Capitalist : Agent{
         scaleFactor = 0.3; //richness?
         bodyRadius = MapValue(capitalHoldings, 0, 100000.0, 3, 6);
         bodyHeight = bodyRadius * 3;
-        mesh_Nv = addCone(body, bodyRadius, Vec3f(0,0,bodyHeight));
+        mesh_Nv = addTetrahedron(body,bodyRadius);
+        //mesh_Nv = addCone(body, bodyRadius, Vec3f(0,0,bodyHeight));
         for(int i=0; i<mesh_Nv; ++i){
 			float f = float(i)/mesh_Nv;
-			body.color(HSV(f*0.2,0.9,1));
+			body.color(HSV(f*0.1,0.9,1));
 		}
         body.decompress();
         body.generateNormals();

@@ -10,7 +10,9 @@ struct State{
     float numMiners = 100;
     float numCapitalists = 15;
     float numWorkers = 75;
-    float numResources = 25 * 7;
+    float numResources = 40 * 7;
+    float phase = 0;
+    int renderModeSwitch = 1;
 
     //miner
     Pose miner_pose[100];
@@ -39,18 +41,20 @@ struct State{
     Color factory_color[15];
 
     //resources
-    Vec3f resource_point_pos[25]; 
-    Vec3f resource_pos[25 * 7]; // the positions of resource are already global
-    float resource_angleA[25 * 7];
-    float resource_angleB[25 * 7];
-    float resource_scale[25 * 7];
-    bool resource_picked[25 * 7];
+    Vec3f resource_point_pos[40]; 
+    Vec3f resource_pos[40 * 7]; // the positions of resource are already global
+    float resource_angleA[40 * 7];
+    float resource_angleB[40 * 7];
+    float resource_scale[40 * 7];
+    bool resource_picked[40 * 7];
 
     //lines
     Vec3f worker_lines_posA[75];
     Vec3f worker_lines_posB[75];
     Vec3f capitalist_lines_posA[15];
     Vec3f capitalist_lines_posB[15];
+    Vec3f miner_lines_posA[100];
+    Vec3f miner_lines_posB[100];
 
     //nav
     // Vec3f nav_pos;

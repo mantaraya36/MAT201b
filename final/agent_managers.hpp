@@ -122,6 +122,7 @@ struct Worker_Union{
         for (int i = workers.size() - 1; i >=0; i --){
             Worker& w = workers[i];
             w.draw(g);
+            g.color(0.4,0.65,1);
             g.draw(lines[i]);
         }
     }
@@ -194,6 +195,7 @@ struct Miner_Group{
         for (int i = ms.size() - 1; i >=0; i --){
             Miner& m = ms[i];
             m.draw(g);
+            g.color(0.6,1,0.6);
             g.draw(lines[i]);
         }
     }

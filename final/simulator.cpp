@@ -36,9 +36,15 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     State state;
     cuttlebone::Maker<State> maker;
 
+    //renderMode
+    int renderModeSwitch = 1;
+
     //shader
     ShaderProgram shader;
     float phase;
+
+    //background noise
+    Mesh geom;
 
 
     MyApp() : maker(Simulator::defaultBroadcastIP()),
@@ -52,6 +58,22 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         initWindow();
         //initAudio(44100);
         
+
+        //background geom noise
+        Mat4f xfm;
+
+		for(int i=0; i<1000; ++i){
+			xfm.setIdentity();
+			xfm.scale(Vec3f(0.2, 0.2, 0.2));
+            Vec3f t = r();
+            Vec3f temp = t;
+			t = t * 60 + temp.normalize(40);
+			xfm.translate(t);
+
+			int Nv = addWireBox(geom);
+			geom.transform(xfm, geom.vertices().size()-Nv);
+		}
+
         //shader
         phase = 0;
         lens().near(0.1).far(150);        //for fog
@@ -179,6 +201,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         state.numWorkers = workers.workers.size();
         state.numCapitalists = capitalists.cs.size();
         state.numResources = NaturalResourcePts.nrps.size() * 7;
+        state.phase = phase;
 
         for (int i = 0; i < miners.ms.size(); i ++){
             state.miner_pose[i] = miners.ms[i].pose;
@@ -186,6 +209,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             state.miner_poetryHoldings[i] = miners.ms[i].poetryHoldings;
             state.miner_bankrupted[i] = miners.ms[i].bankrupted();
             state.miner_fullpack[i] = miners.ms[i].fullpack;
+            state.miner_lines_posA[i] = miners.lines[i].vertices()[0];
+            state.miner_lines_posB[i] = miners.lines[i].vertices()[1];
     
         }
         for (int i = 0; i < workers.workers.size(); i ++){
@@ -224,15 +249,23 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         }
         state.metro_rotate_angle = metropolis.angle;
         state.nav_pose = nav();
+        state.renderModeSwitch = renderModeSwitch;
 
         maker.set(state);
    
     }
     void onDraw(Graphics& g) {
-        g.blendAdd();
-        //g.fog(lens().far(), lens().near()+2, background());
-        //shader.begin();
-			//shader.uniform("fogCurve", 4*cos(8*phase*6.2832));
+        if (renderModeSwitch == 1){
+            g.blendSub();
+            g.fog(lens().far(), lens().near()+2, background());
+            shader.begin();
+			shader.uniform("fogCurve", 4*cos(8*phase*6.2832));
+        } else if (renderModeSwitch == 2){
+            g.blendAdd();
+        } else {
+            g.blending(false);
+        }
+        
             material();
             light();
             //glEnable(GL_POINT_SPRITE);
@@ -244,28 +277,33 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             capitalists.draw(g);
             miners.draw(g);
             workers.draw(g);
-        //shader.end();
+            g.draw(geom);
+        if (renderModeSwitch == 1){
+            shader.end();
+        }
 
     }
     virtual void onSound(AudioIOData& io) {
         gam::Sync::master().spu(AlloSphereAudioSpatializer::audioIO().fps());
-       for (unsigned i = 0; i < 15; ++i){
+        for (unsigned i = 0; i < 15; ++i){
            
            capitalists.cs[i].updateAuidoPose();
            capitalists.cs[i].onProcess(io);
            io.frame(0);
-       }
-       //listener()->pose(nav());
-       //io.frame(0);
-       //scene()->render(io);
+        }
+        //listener()->pose(nav());
+        //io.frame(0);
+        //scene()->render(io);
    
     }
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {
         switch(k.key()){
-            case '1': factories.drawingLinks = !factories.drawingLinks; break;
-            case '2': miners.drawingLinks = !miners.drawingLinks; break;
-            case '3': workers.drawingLinks = !workers.drawingLinks;break;
-            case '4': break;
+            case '4': factories.drawingLinks = !factories.drawingLinks; break;
+            case '5': miners.drawingLinks = !miners.drawingLinks; break;
+            case '6': workers.drawingLinks = !workers.drawingLinks;break;
+            case '1': renderModeSwitch = 1; break;
+            case '2': renderModeSwitch = 2; break;
+            case '3': renderModeSwitch = 3; break;
             case '0': nav().pos(0,0,80);nav().faceToward(Vec3f(0,0,0), 1);
         }
     }
