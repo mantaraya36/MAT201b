@@ -59,7 +59,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     SpeakerLayout* speakerLayout;
     Spatializer* panner;
     Listener* listener;
-    SoundSource source[MAXIMUM_NUMBER_OF_SOUND_SOURCES];
+    SoundSource *source[MAXIMUM_NUMBER_OF_SOUND_SOURCES];
 
     MyApp() : maker(Simulator::defaultBroadcastIP()),
         InterfaceServerClient(Simulator::defaultInterfaceServerIP()), vbap_scene(BLOCK_SIZE)        {
@@ -146,18 +146,21 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             //scene()->addSource(*capitalists.cs[i].soundSource);
             capitalists.cs[i].v_player.rate(1);
         }
-        if (!inSphere){
-            speakerLayout = new HeadsetSpeakerLayout();
-            panner = new StereoPanner(*speakerLayout);
-            //panner->print();
-            //panner = new Vbap(*speakerLayout, true);
-            panner->print();
-        } else {
-            speakerLayout = new AlloSphereSpeakerLayout();
+        // if (!inSphere){
+        //     speakerLayout = new HeadsetSpeakerLayout();
+        //     panner = new StereoPanner(*speakerLayout);
+        //     //panner->print();
+        //     //panner = new Vbap(*speakerLayout, true);
+        //     panner->print();
+        // } else {
+        //     speakerLayout = new AlloSphereSpeakerLayout();
+        //     panner = new Vbap(*speakerLayout);
+        //     panner->print();
+
+        // }
+        speakerLayout = new AlloSphereSpeakerLayout();
             panner = new Vbap(*speakerLayout);
             panner->print();
-
-        }
         speakerLayout = new AlloSphereSpeakerLayout();
         panner = new Vbap(*speakerLayout);
         panner->print();
@@ -166,13 +169,14 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         float near = 0.2;
         float listenRadius = 60;
         for (int i = 0; i < capitalists.cs.size(); i++) {
-            source[i].nearClip(near);
-            source[i].farClip(listenRadius);
-            source[i].law(ATTEN_LINEAR);
+            source[i] = new SoundSource();
+            source[i]->nearClip(near);
+            source[i]->farClip(listenRadius);
+            source[i]->law(ATTEN_LINEAR);
             //source[i].law(ATTEN_INVERSE_SQUARE);
-            source[i].dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
+            source[i]->dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
             //source[i].law(ATTEN_INVERSE);
-            vbap_scene.addSource(source[i]);
+            vbap_scene.addSource(*source[i]);
         }
         vbap_scene.usePerSampleProcessing(false);
         //scene()->usePerSampleProcessing(false);
@@ -357,14 +361,14 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 
         //vector<unsigned> n;
         for (int i = 0; i < capitalists.cs.size(); i++){
-            source[i].pos(capitalists.cs[i].pose.pos().x,capitalists.cs[i].pose.pos().y, capitalists.cs[i].pose.pos().z);
+            source[i]->pos(capitalists.cs[i].pose.pos().x,capitalists.cs[i].pose.pos().y, capitalists.cs[i].pose.pos().z);
         //double d = (source[i].pos() - listener->pos()).mag();
         //double a = source[i].attenuation(d);
         //double db = log10(a) * 20.0;
         //cout << d << "," << a << "," << db << endl;
         
       }
-cout << source[0].pos() << " source 0 pos" << endl;
+//cout << source[0]->pos() << " source 0 pos" << endl;
         listener->pos(x, y, z);
         int numFrames = io.framesPerBuffer();
         for (int k = 0; k < numFrames; k++) {
@@ -373,7 +377,7 @@ cout << source[0].pos() << " source 0 pos" << endl;
                     float f = 0;
                     f = capitalists.cs[i].v_player();
                     double d = isnan(f) ? 0.0 : (double)f; // XXX need this nan check?
-                    source[i].writeSample(d);
+                    source[i]->writeSample(d);
                     io.frame(0);
             }
         }
