@@ -60,8 +60,13 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         //lens().far(400);                 // set the far clipping plane
         
         //background(Color(0.07));
-        background(Color(1,0.85, 0.4));
-        //background(Color(1, 0.85, 0.4, 1.0));
+        if (renderModeSwitch == 3){
+            background(Color(1,0.85, 0.4));
+        } else if (renderModeSwitch == 2){
+            background(Color(0.31, 0, 0.27));
+        } else if (renderModeSwitch == 1){
+            background(Color(1,1,1));
+        }
         initWindow();
         //initAudio(44100);
         
@@ -274,6 +279,14 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         state.colorR = colorR;
         state.colorG = colorG;
         state.colorB = colorB;
+
+        if (renderModeSwitch == 3){
+            background(Color(1,0.85, 0.4));
+        } else if (renderModeSwitch == 2){
+            background(Color(0.31, 0, 0.27));
+        } else if (renderModeSwitch == 1){
+            background(Color(1,1,1));
+        }
 
         maker.set(state);
    
