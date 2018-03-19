@@ -161,9 +161,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         speakerLayout = new AlloSphereSpeakerLayout();
             panner = new Vbap(*speakerLayout);
             panner->print();
-        speakerLayout = new AlloSphereSpeakerLayout();
-        panner = new Vbap(*speakerLayout);
-        panner->print();
+
         listener = vbap_scene.createListener(panner);
         listener->compile(); // XXX need this?
         float near = 0.2;

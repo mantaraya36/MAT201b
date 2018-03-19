@@ -13,6 +13,7 @@ struct State{
     float numResources = 40 * 7;
     float phase = 0;
     int renderModeSwitch = 1;
+    float colorBrightness = 1;
 
     //miner
     Pose miner_pose[100];

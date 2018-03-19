@@ -38,6 +38,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 
     //renderMode
     int renderModeSwitch = 1;
+    float brightness = 1;
 
     //cameraMode
     int cameraSwitch = 0;
@@ -265,6 +266,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         state.metro_rotate_angle = metropolis.angle;
         state.nav_pose = nav();
         state.renderModeSwitch = renderModeSwitch;
+        state.colorBrightness = brightness;
 
         maker.set(state);
    
@@ -323,6 +325,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             case '5': cameraSwitch = 2; break;
             case '6': cameraSwitch = 3; break;
             case '0': cameraSwitch = 0; nav().pos(0,0,80);nav().faceToward(Vec3f(0,0,0), 1);
+            case 'h': brightness += 0.01; cout << "brightness = " << brightness << endl; break;
+            case 'j': brightness -= 0.01; cout << "brightness = " << brightness << endl; break;
         }
     }
 
