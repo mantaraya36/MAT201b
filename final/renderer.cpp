@@ -63,7 +63,7 @@ struct MyApp : OmniStereoGraphicsRenderer {
 
 		for(int i=0; i<1000; ++i){
 			xfm.setIdentity();
-			xfm.scale(Vec3f(0.2, 0.2, 0.2));
+			xfm.scale(Vec3f(0.4, 0.4, 0.4));
             Vec3f t = r();
             Vec3f temp = t;
 			t = t * 60 + temp.normalize(40);
@@ -202,7 +202,7 @@ struct MyApp : OmniStereoGraphicsRenderer {
         pose = nav();
         phase = state.phase;
         renderModeSwitch = state.renderModeSwitch;
-        omni().clearColor() = Color(1, 0.85, 0.4, 1.0) * state.colorBrightness;
+        omni().clearColor() = Color(state.colorR, state.colorG, state.colorB, 1.0);
 
     }
     void onDraw(Graphics& g) {

@@ -8,6 +8,8 @@
 #include "alloutil/al_AlloSphereAudioSpatializer.hpp"
 #include "alloutil/al_Simulator.hpp"
 #include "Cuttlebone/Cuttlebone.hpp"
+#include "alloGLV/al_ControlGLV.hpp"
+#include "GLV/glv.h"
 
 using namespace al;
 using namespace std;
@@ -38,7 +40,9 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 
     //renderMode
     int renderModeSwitch = 1;
-    float brightness = 1;
+    float colorR = 1;
+    float colorG = 0.85;
+    float colorB = 0.4;
 
     //cameraMode
     int cameraSwitch = 0;
@@ -56,7 +60,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         //lens().far(400);                 // set the far clipping plane
         
         //background(Color(0.07));
-        background(Color(1, 0.85, 0.4, 1.0));
+        background(Color(1,0.85, 0.4));
+        //background(Color(1, 0.85, 0.4, 1.0));
         initWindow();
         //initAudio(44100);
         
@@ -266,7 +271,9 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         state.metro_rotate_angle = metropolis.angle;
         state.nav_pose = nav();
         state.renderModeSwitch = renderModeSwitch;
-        state.colorBrightness = brightness;
+        state.colorR = colorR;
+        state.colorG = colorG;
+        state.colorB = colorB;
 
         maker.set(state);
    
@@ -325,9 +332,13 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             case '5': cameraSwitch = 2; break;
             case '6': cameraSwitch = 3; break;
             case '0': cameraSwitch = 0; nav().pos(0,0,80);nav().faceToward(Vec3f(0,0,0), 1);
-            case 'h': brightness += 0.01; cout << "brightness = " << brightness << endl; break;
-            case 'j': brightness -= 0.01; cout << "brightness = " << brightness << endl; break;
-        }
+            case 'y': if (colorR < 1.0) {colorR += 0.01;} cout << "R = " << colorR << endl; break;
+            case 'h': if (colorR > 0.0) {colorR -= 0.01;} cout << "R = " << colorR << endl; break;
+            case 'u': if (colorG < 1.0) {colorG += 0.01;} cout << "G = " << colorG << endl; break;
+            case 'j': if (colorG > 0.0) {colorG -= 0.01;} cout << "G = " << colorG << endl; break;
+            case 'i': if (colorB < 1.0) {colorB += 0.01;} cout << "B = " << colorB << endl; break;
+            case 'k': if (colorB > 0.0) {colorB -= 0.01;} cout << "B = " << colorB << endl; break;
+       }
     }
 
 };
