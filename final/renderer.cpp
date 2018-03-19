@@ -39,7 +39,6 @@ struct MyApp : OmniStereoGraphicsRenderer {
     vector<Line> miner_lines;
 
     Mesh geom;
-    ShaderProgram fogshader;
     float phase;
 
     int renderModeSwitch = 1;
@@ -75,37 +74,6 @@ struct MyApp : OmniStereoGraphicsRenderer {
 
         //shader
         phase = 0;
-        fogshader.compile(
-		R"(
-			/* 'fogCurve' determines the distribution of fog between the near and far planes.
-			Positive values give more dense fog while negative values give less dense
-			fog. A value of	zero results in a linear distribution. */
-			uniform float fogCurve;
-
-			/* The fog amount in [0,1] passed to the fragment shader. */
-			varying float fogFactor;
-
-			void main(){
-				gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-				gl_FrontColor = gl_Color;
-
-				float z = gl_Position.z;
-				//float z = gl_FragCoord.z / gl_FragCoord.w; /* per-frament fog would use this */
-				fogFactor = (z - gl_Fog.start) * gl_Fog.scale;
-				fogFactor = clamp(fogFactor, 0., 1.);
-				if(fogCurve != 0.){
-					fogFactor = (1. - exp(-fogCurve*fogFactor))/(1. - exp(-fogCurve));
-				}
-			}
-		)",
-		R"(
-			varying float fogFactor;
-
-			void main(){
-				gl_FragColor = mix(gl_Color, gl_Fog.color, fogFactor);
-			}
-		)"
-		);
 
         //initialize mesh
         //miner body
@@ -222,7 +190,8 @@ struct MyApp : OmniStereoGraphicsRenderer {
         }
         //g.fog(lens().far(), lens().near()+2, HSV(0.1, 0.5, 0.5));
         //fogshader.begin();
-        //fogshader.uniform("fogCurve", 4*cos(8*phase*6.2832));
+        shader().uniform("fogCurve", 4*cos(8*phase*6.2832));
+        shader().uniform("fogamount", state.fogamount);
         shader().uniform("lighting", 0.1);
         
         //material();
@@ -308,6 +277,68 @@ struct MyApp : OmniStereoGraphicsRenderer {
         g.draw(geom);
         //fogshader.end();
 
+    }
+
+    std::string vertexCode() {
+        // XXX use c++11 string literals
+        return R"(
+            varying vec4 color;
+            varying vec3 normal, lightDir, eyeVec;
+
+            uniform float fogCurve;
+            varying float fogFactor;
+            void main() {
+                color = gl_Color;
+                
+                vec4 vertex = gl_ModelViewMatrix * gl_Vertex;
+                normal = gl_NormalMatrix * gl_Normal;
+                vec3 V = vertex.xyz;
+                eyeVec = normalize(-V);
+                lightDir = normalize(vec3(gl_LightSource[0].position.xyz - V));
+                gl_TexCoord[0] = gl_MultiTexCoord0;
+                gl_Position = omni_render(vertex);
+
+                float z = gl_Position.z;
+                gl_FrontColor = gl_Color;
+                fogFactor = (z - gl_Fog.start) * gl_Fog.scale;
+				fogFactor = clamp(fogFactor, 0., 1.);
+				if(fogCurve != 0.){
+					fogFactor = (1. - exp(-fogCurve*fogFactor))/(1. - exp(-fogCurve));
+				}
+
+            }
+        )";
+    }
+    std::string fragmentCode() {
+        return R"(
+            uniform float lighting;
+            uniform float fogamount;
+            uniform float texture;
+            uniform sampler2D texture0;
+            varying vec4 color;
+            varying vec3 normal, lightDir, eyeVec;
+            varying float fogFactor;
+            void main() {
+                vec4 colorMixed;
+                if (texture > 0.0) {
+                    vec4 textureColor = texture2D(texture0, gl_TexCoord[0].st);
+                    colorMixed = mix(color, textureColor, texture);
+                } else {
+                    colorMixed = color;
+                }
+                vec4 final_color = colorMixed * gl_LightSource[0].ambient;
+                vec3 N = normalize(normal);
+                vec3 L = lightDir;
+                float lambertTerm = max(dot(N, L), 0.0);
+                final_color += gl_LightSource[0].diffuse * colorMixed * lambertTerm;
+                vec3 E = eyeVec;
+                vec3 R = reflect(-L, N);
+                float spec = pow(max(dot(R, E), 0.0), 0.9 + 1e-20);
+                final_color += gl_LightSource[0].specular * spec;
+
+                gl_FragColor = mix(mix(colorMixed, final_color, lighting), mix(gl_Color, gl_Fog.color, fogFactor), fogamount);
+            }
+        )";
     }
     
 };

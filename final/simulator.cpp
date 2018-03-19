@@ -43,6 +43,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     float colorR = 1;
     float colorG = 0.85;
     float colorB = 0.4;
+    float fogamount = 1;
 
     //cameraMode
     int cameraSwitch = 0;
@@ -279,6 +280,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         state.colorR = colorR;
         state.colorG = colorG;
         state.colorB = colorB;
+        state.fogamount = fogamount;
 
         if (renderModeSwitch == 3){
             background(Color(1,0.85, 0.4));
@@ -351,6 +353,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             case 'j': if (colorG > 0.0) {colorG -= 0.01;} cout << "G = " << colorG << endl; break;
             case 'i': if (colorB < 1.0) {colorB += 0.01;} cout << "B = " << colorB << endl; break;
             case 'k': if (colorB > 0.0) {colorB -= 0.01;} cout << "B = " << colorB << endl; break;
+            case '=': if (fogamount < 1.0){fogamount += 0.1;} cout << "fog = " << fogamount << endl; break;
+            case '-': if (fogamount > 0.0){fogamount -= 0.1;} cout << "fog = " << fogamount << endl; break;
        }
     }
 

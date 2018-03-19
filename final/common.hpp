@@ -16,6 +16,7 @@ struct State{
     float colorR = 1;
     float colorG = 1;
     float colorB = 1;
+    float fogamount = 1;
 
     //miner
     Pose miner_pose[100];
