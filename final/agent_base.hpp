@@ -10,7 +10,7 @@ struct Agent{
     Pose pose;
     Color c;
     Quatd q;
-    Mesh body;
+    MeshVBO body;
     float maxspeed;
     float minspeed;
     float mass;

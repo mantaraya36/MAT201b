@@ -65,7 +65,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     //Vbap* panner;
     Spatializer* panner;
     Listener* listener;
-    SoundSource *source[MAXIMUM_NUMBER_OF_SOUND_SOURCES];
+    SoundSource *source[15];
+    SoundSource *sourceWorker[75];
 
     MyApp() : maker(Simulator::defaultBroadcastIP()),
         InterfaceServerClient(Simulator::defaultInterfaceServerIP()), vbap_scene(BLOCK_SIZE)       {
@@ -136,6 +137,17 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             //source[i].law(ATTEN_INVERSE);
             vbap_scene.addSource(*source[i]);
         }
+         for (unsigned i = 0; i < workers.workers.size(); ++i) {
+            sourceWorker[i] = new SoundSource();
+            sourceWorker[i]->nearClip(near);
+            sourceWorker[i]->farClip(listenRadius * 0.75);
+            sourceWorker[i]->law(ATTEN_LINEAR);
+            //source[i]->law(ATTEN_INVERSE_SQUARE);
+            sourceWorker[i]->dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
+            //source[i].law(ATTEN_INVERSE);
+            vbap_scene.addSource(*sourceWorker[i]);
+        }
+        
         vbap_scene.usePerSampleProcessing(false);
         AlloSphereAudioSpatializer::initAudio("ECHO X5", 44100, BLOCK_SIZE, 60, 60);
         fflush(stdout);
@@ -200,6 +212,23 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             //nav().faceToward(NaturalResourcePts.nrps[miners.ms[0].id_ClosestNRP].position, 0.3 * dt);
         } else {
             
+        }
+        //audio source position
+        //capitlist sound position
+        for (int i = 0; i < capitalists.cs.size(); i++){
+            source[i]->pos(capitalists.cs[i].pose.pos().x,capitalists.cs[i].pose.pos().y, capitalists.cs[i].pose.pos().z);
+                //double d = (source[i].pos() - listener->pos()).mag();
+                //double a = source[i].attenuation(d);
+                //double db = log10(a) * 20.0;
+                //cout << d << "," << a << "," << db << endl;
+        }
+        //worker sound position
+        for (int i = 0; i < workers.workers.size(); i++){
+            sourceWorker[i]->pos(workers.workers[i].pose.pos().x,workers.workers[i].pose.pos().y, workers.workers[i].pose.pos().z);
+                //double d = (source[i].pos() - listener->pos()).mag();
+                //double a = source[i].attenuation(d);
+                //double db = log10(a) * 20.0;
+                //cout << d << "," << a << "," << db << endl;
         }
 
         //debug
@@ -325,16 +354,11 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         float z = nav().pos().z;
         listener->pos(x,y,z);
 
-        //capitlist sound
-        for (int i = 0; i < capitalists.cs.size(); i++){
-            source[i]->pos(capitalists.cs[i].pose.pos().x,capitalists.cs[i].pose.pos().y, capitalists.cs[i].pose.pos().z);
-                //double d = (source[i].pos() - listener->pos()).mag();
-                //double a = source[i].attenuation(d);
-                //double db = log10(a) * 20.0;
-                //cout << d << "," << a << "," << db << endl;
-        }
+        
+
         int numFrames = io.framesPerBuffer();
         for (int k = 0; k < numFrames; k++) {
+            //capitalist sample
             for (int i = 0; i < capitalists.cs.size(); i++) {
                 //io.frame(0);
                 float f = 0;
@@ -343,7 +367,16 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
                 source[i]->writeSample(d);
                 io.frame(0);
             }
+            //worker sample
+            for (int i = 0; i < workers.workers.size(); i ++){
+                float f = 0;
+                f = workers.workers[i].onProcess(io);
+                double d = isnan(f) ? 0.0 : (double)f;
+                sourceWorker[i]->writeSample(d);
+                io.frame(0);
+            }
         }
+        //io.frame(0);
         
         vbap_scene.render(io);        
     }

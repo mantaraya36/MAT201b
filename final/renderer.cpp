@@ -33,6 +33,9 @@ struct MyApp : OmniStereoGraphicsRenderer {
     Mesh resource_body;
     Mesh resource_body_wires;
     int resource_nv;
+    Mesh packed_resource;
+    Mesh packed_resource_wire;
+    int packed_resource_nv;
 
     vector<Line> capitalist_lines;
     vector<Line> worker_lines;
@@ -86,6 +89,18 @@ struct MyApp : OmniStereoGraphicsRenderer {
         miner_body.generateNormals();
         addCube(miner_resource, 4);
         miner_resource.generateNormals();
+
+        //miner's packed resource
+        packed_resource_nv = addCube(packed_resource);
+        addCube(packed_resource_wire);
+        packed_resource_wire.primitive(Graphics::LINE_LOOP);
+        for(int i=0; i<packed_resource_nv; ++i){
+			float f = float(i)/packed_resource_nv;
+			packed_resource.color(HSV(f*0.1+0.2,1,1));
+            packed_resource_wire.color(HSV(f*0.1+0.2,1,1));
+		}
+        packed_resource.decompress();
+        packed_resource.generateNormals();
 
         //worker body
         worker_nv = addCone(worker_body, MapValue(4000, 0, 100000.0, 1, 3), Vec3f(0,0, MapValue(4000, 0, 100000.0, 1, 3) * 3));
@@ -204,6 +219,16 @@ struct MyApp : OmniStereoGraphicsRenderer {
                 g.rotate(state.miner_pose[i].quat());
                 g.scale(state.miner_scale[i]);
                 g.draw(miner_body);
+                if (state.miner_fullpack[i]){
+                    g.pushMatrix();
+                    g.translate(0,0,6);
+                    g.scale(1);
+                    g.draw(packed_resource);
+                    g.translate(0,0,-1.5);
+                    g.scale(2);
+                    g.draw(packed_resource_wire);
+                    g.popMatrix();
+                }
                 g.popMatrix();
                 g.color(0.6,1,0.6);
                 g.draw(miner_lines[i]);

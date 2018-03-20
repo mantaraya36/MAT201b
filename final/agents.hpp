@@ -8,6 +8,7 @@
 #include "agent_base.hpp"
 #include "locations.hpp"
 #include "Gamma/Filter.h"
+#include "Gamma/Envelope.h"
 #include "Gamma/DFT.h"
 #include "Gamma/Effects.h"
 #include "Gamma/Delay.h"
@@ -80,8 +81,8 @@ struct Capitalist : Agent{
     float rate;
     double audioTimer;
     // gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
-    gam::OnePole<> smoothRate;
-    DynamicSamplePlayer player;
+    // gam::OnePole<> smoothRate;
+    // DynamicSamplePlayer player;
 
     //gamma effects
     //gam::LFO<> osc;
@@ -90,7 +91,7 @@ struct Capitalist : Agent{
     gam::LFO<> mod;
 	gam::Hilbert<> hil;
 	gam::CSine<> shifter;
-    gam::Biquad<> bq;
+    // gam::Biquad<> bq;
     gam::OnePole<> onePole;
     gam::Accum<> tmr;
     gam::NoisePink<> s_noise;
@@ -143,25 +144,25 @@ struct Capitalist : Agent{
         body.generateNormals();
 
         //audio basic
-        soundSource = new SoundSource;
-        soundSource->farClip(25);
-        // soundSource->farBias(0);
-        soundSource->useAttenuation(true);
-        soundSource->attenuation(25);
-        SearchPaths searchPaths;
-        searchPaths.addSearchPath("..");
-        string filePath = searchPaths.find("socialismgood.wav").filepath();
-        player.load(filePath.c_str());
+        // soundSource = new SoundSource;
+        // soundSource->farClip(25);
+        // // soundSource->farBias(0);
+        // soundSource->useAttenuation(true);
+        // soundSource->attenuation(25);
+        // SearchPaths searchPaths;
+        // searchPaths.addSearchPath("..");
+        // string filePath = searchPaths.find("socialismgood.wav").filepath();
+        // player.load(filePath.c_str());
         //v_player.load(filePath.c_str());
-        audioTimer = 0;
+        //audioTimer = 0;
         
 
         //effects
         //sine
         sine.freq(440);
         //for sample
-        smoothRate.freq(3.14159);
-        smoothRate = -2.5;
+        //smoothRate.freq(3.14159);
+        //smoothRate = -2.5;
         //smoothRate = 0.07;
 
         //for hilbert
@@ -173,11 +174,11 @@ struct Capitalist : Agent{
         mod.phase(0.5);
 		
         //biquad
-        bq.res(4);
-        bq.level(2);
+        // bq.res(4);
+        // bq.level(2);
 
         //delay
-        tmr.period(0.8);
+        tmr.period(0.75);
         tmr.phaseMax();
         delay.maxDelay(0.4);
         delay.delay(0.2);
@@ -188,7 +189,7 @@ struct Capitalist : Agent{
     }
     float onProcess(AudioIOData& io){
         while (io()){
-            player.rate(smoothRate());
+            //player.rate(smoothRate());
             if (tmr()){
                 //source = player();
                 sine.set(gam::rnd::uni(10,1)*50, 0.2, gam::rnd::lin(2., 0.1));
@@ -209,13 +210,14 @@ struct Capitalist : Agent{
             onePole.freq(1000 + cutoff * 0.2);
             //float s = onePole(sr) * 0.3 + onePole(si) * 0.3;
             
-            float s = onePole(sr + si) * 0.2 + s_noise() * gam::scl::pow3(mod.triU()) * 0.06;
+            //float s = onePole(sr + si) * 0.2 + s_noise() * gam::scl::pow3(mod.triU()) * 0.06;
+            float s = onePole(sr + si) * 0.2;
             s = vibrato(s);
 
             //biquad
-            bq.type(gam::BAND_PASS);
-            bq.freq(500 + cutoff * 0.08);
-            float sample = bq(s) + sineClick;
+            // bq.type(gam::BAND_PASS);
+            // bq.freq(500 + cutoff * 0.08);
+            float sample = s * 0.7 + sineClick * 0.3;
             return sample;
             //delay
             // if (tmr()) {
@@ -251,37 +253,37 @@ struct Capitalist : Agent{
         moneyConsumption();
         //updateSamplePlayer();
     }
-    void updateSamplePlayer(){
-        audioTimer += 1 / 60;
-        if (audioTimer > 5.0) {
-            audioTimer -= 5.0;
-            float begin, end;
-            for (int t = 0; t < 100; t++) {
-                begin = rnd::uniform(player.frames());
-                end = rnd::uniform(player.frames());
+    // void updateSamplePlayer(){
+    //     audioTimer += 1 / 60;
+    //     if (audioTimer > 5.0) {
+    //         audioTimer -= 5.0;
+    //         float begin, end;
+    //         for (int t = 0; t < 100; t++) {
+    //             begin = rnd::uniform(player.frames());
+    //             end = rnd::uniform(player.frames());
 
-                if (abs(player[int(begin)] - player[int(end)]) < 0.125) break;
-            }
-            if (begin > end) {
-                float t = begin;
-                begin = end;
-                end = t;
-            }
-            // tell the player the begin and end points
-            //
-            player.min(begin);
-            player.max(end);
-            // set playback rate. negative rates play in reverse.
-            //
-            float r = pow(2, rnd::uniformS(1.0f));
-            if (rnd::prob(0.3)) r *= -1;
-            smoothRate = r;
+    //             if (abs(player[int(begin)] - player[int(end)]) < 0.125) break;
+    //         }
+    //         if (begin > end) {
+    //             float t = begin;
+    //             begin = end;
+    //             end = t;
+    //         }
+    //         // tell the player the begin and end points
+    //         //
+    //         player.min(begin);
+    //         player.max(end);
+    //         // set playback rate. negative rates play in reverse.
+    //         //
+    //         float r = pow(2, rnd::uniformS(1.0f));
+    //         if (rnd::prob(0.3)) r *= -1;
+    //         smoothRate = r;
 
-            // start sample from beginning
-            //
-            player.reset();
-        }
-    }
+    //         // start sample from beginning
+    //         //
+    //         player.reset();
+    //     }
+    // }
     void updateAuidoPose(){
         //audio
         soundSource->pose(Agent::pose);
@@ -828,6 +830,8 @@ struct Worker : Agent {
     float bodyRadius;
     float bodyHeight;
     int workerID;
+    float neighborNum;
+    float noiseLevel;
 
     // SoundSource *soundSource;
     // using Agent::pose;
@@ -841,17 +845,20 @@ struct Worker : Agent {
 
     //gamma effects
     //gam::LFO<> osc;
-	// gam::LFO<> shiftMod;
-    // gam::LFO<> mod;
-	// gam::Hilbert<> hil;
+
+    gam::Sine<> src;
+    gam::AD<> env;
+    gam::LFO<> mod;
 	// gam::CSine<> shifter;
+    // gam::LFO<> shiftMod;
     // gam::Biquad<> bq;
     // gam::OnePole<> onePole;
-    // gam::Accum<> tmr;
-    // gam::NoisePink<> s_noise;
+    gam::NoisePink<> pink;
+    gam::Accum<> tmr;
+    float sample;
     // gam::Delay<float, gam::ipl::Trunc> delay;
     // gam::SineD<> sine;
-    // Vibrato vibrato;
+    Vibrato vibrato;
 
     Worker(){
         maxAcceleration = 1;
@@ -923,7 +930,7 @@ struct Worker : Agent {
 
         // //effects
         // //oscillator
-        // sine.freq(440);
+        //sine.freq(440);
 
         // //for sample
         // // smoothRate.freq(3.14159);
@@ -933,9 +940,12 @@ struct Worker : Agent {
 		// shiftMod.period(16);
         // shifter.freq(200);
 
-        // //for one pole
+        //noted pink noise
         // mod.period(120);
         // mod.phase(0.5);
+        tmr.period(4.5);
+        env.attack(0.01).decay(0.24);
+        noiseLevel = 0.0;
 		
         // //biquad
         // bq.res(4);
@@ -947,8 +957,11 @@ struct Worker : Agent {
         // delay.maxDelay(0.4);
         // delay.delay(0.2);
     }
+    void noiseLevelUpdate(){
+        noiseLevel = MapValue(neighborNum, 0, 100, 0.01, 0.4);
+    }
 
-    void onProcess(AudioIOData& io){
+    float onProcess(AudioIOData& io){
         while (io()){
             // //player.rate(smoothRate());
             // if (tmr()){
@@ -969,8 +982,22 @@ struct Worker : Agent {
             // float cutoff = gam::scl::pow3(mod.triU()) * 2000;
             // onePole.freq(1000 + cutoff * 0.2);
             // //float s = onePole(sr) * 0.3 + onePole(si) * 0.3;
+            // if (tmr()){
+            //     // float frq = pink() * 24;
+            //     // frq = gam::scl::ratioET(gam::scl::nearest(frq, "2212221")) * gam::scl::freq("c4");
+            //     float frq = rnd::uniformS() * 880 + 30;
+            //     src.freq(frq);
+            //     env.reset();
             
-            // float s = onePole(sr + si) * 0.2 + s_noise() * gam::scl::pow3(mod.triU()) * 0.06;
+            // }
+
+            //float s = src() * env() * 0.05 + 
+            //float s = src() * env() * 0.1 * noiseLevel;
+            float s = pink() * 0.1 * noiseLevel;
+
+            //s = vibrato(s);
+            sample = s;
+            return sample;
             // s = vibrato(s);
 
             // //biquad
@@ -1041,6 +1068,7 @@ struct Worker : Agent {
         sep *= separateForce;
         applyForce(sep);     
 
+        noiseLevelUpdate();
         borderDetect();
         update();
         moneyConsumption();
@@ -1195,6 +1223,7 @@ struct Worker : Agent {
     Vec3f separate(vector<Worker>& others){
         Vec3f sum;
         int count = 0;
+        neighborNum = 0;
         for (Worker w : others){
             Vec3f difference = pose.pos() - w.pose.pos();
             float d = difference.mag();
@@ -1202,6 +1231,7 @@ struct Worker : Agent {
                 Vec3f diff = difference.normalize();
                 sum += diff;
                 count ++;
+                neighborNum ++;
             }
         }
         if (count > 0){
