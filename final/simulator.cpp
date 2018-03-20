@@ -43,7 +43,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     float colorR = 1;
     float colorG = 0.85;
     float colorB = 0.4;
-    float fogamount = 1;
+    float fogamount = 0.1;
 
     //cameraMode
     int cameraSwitch = 0;
@@ -64,7 +64,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         if (renderModeSwitch == 3){
             background(Color(1,0.85, 0.4));
         } else if (renderModeSwitch == 2){
-            background(Color(0.31, 0, 0.27));
+            background(Color(1, 0.5, 0.6));
         } else if (renderModeSwitch == 1){
             background(Color(1,1,1));
         }
@@ -77,7 +77,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 
 		for(int i=0; i<1000; ++i){
 			xfm.setIdentity();
-			xfm.scale(Vec3f(0.2, 0.2, 0.2));
+			xfm.scale(Vec3f(0.4, 0.4, 0.4));
             Vec3f t = r();
             Vec3f temp = t;
 			t = t * 60 + temp.normalize(40);
@@ -121,21 +121,6 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 			}
 		)"
 		);
-
-        //set speaker layout
-        // const int numSpeakers = 2;
-        // Speaker speakers[numSpeakers] = {
-        //     Speaker(0, 45, 0),
-        //     Speaker(1, -45, 0),
-        // };
-
-        // speakerLayout.addSpeaker(speakers[0]);
-        // speakerLayout.addSpeaker(speakers[1]);
-
-        // spat = new AmbisonicsSpatializer(speakerLayout, 2, 1);
-
-        // scene.usePerSampleProcessing(false);
-        //listener = scene()->createListener(spat);
 
         //allo audio
         AlloSphereAudioSpatializer::initAudio();

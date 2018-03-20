@@ -57,7 +57,6 @@ public:
 // struct Natural_Resource_Point;
 // struct MetroBuilding;
 struct Capitalist : Agent{
-    SoundSource *soundSource;
     int mesh_Nv;
     Vec3f movingTarget;
     int desireChangeRate;
@@ -74,14 +73,15 @@ struct Capitalist : Agent{
     float totalResourceHoldings;
 
     //audio params
+    SoundSource *soundSource;
     using Agent::pose;
     float oscPhase = 0;
     float oscEnv = 1;
     float rate;
     double audioTimer;
-    gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
-    gam::OnePole<> smoothRate;
-    DynamicSamplePlayer v_player;
+    // gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
+    // gam::OnePole<> smoothRate;
+    // DynamicSamplePlayer v_player;
 
     //gamma effects
     //gam::LFO<> osc;
@@ -147,11 +147,11 @@ struct Capitalist : Agent{
         // soundSource->farBias(0);
         // soundSource->useAttenuation(true);
         // soundSource->attenuation(3);
-        SearchPaths searchPaths;
-        searchPaths.addSearchPath("..");
-        string filePath = searchPaths.find("socialismgood.wav").filepath();
-        player.load(filePath.c_str());
-        v_player.load(filePath.c_str());
+        // SearchPaths searchPaths;
+        // searchPaths.addSearchPath("..");
+        // string filePath = searchPaths.find("socialismgood.wav").filepath();
+        // player.load(filePath.c_str());
+        // v_player.load(filePath.c_str());
         audioTimer = 0;
         
 
@@ -221,8 +221,8 @@ struct Capitalist : Agent{
             //soundSource->writeSample(source * 0.01); 
 
             //for bypass only
-            io.out(0) += sample;
-            io.out(1) += sample;
+            //io.out(0) += sample;
+            //io.out(1) += sample;
         }
     }
     void run(vector<MetroBuilding>& mbs){
@@ -820,6 +820,30 @@ struct Worker : Agent {
     float bodyRadius;
     float bodyHeight;
     int workerID;
+
+    SoundSource *soundSource;
+    using Agent::pose;
+    float oscPhase = 0;
+    float oscEnv = 1;
+    float rate;
+    double audioTimer;
+    gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
+    gam::OnePole<> smoothRate;
+    DynamicSamplePlayer v_player;
+
+    //gamma effects
+    //gam::LFO<> osc;
+	gam::LFO<> shiftMod;
+    gam::LFO<> mod;
+	gam::Hilbert<> hil;
+	gam::CSine<> shifter;
+    gam::Biquad<> bq;
+    gam::OnePole<> onePole;
+    gam::Accum<> tmr;
+    gam::NoisePink<> s_noise;
+    gam::Delay<float, gam::ipl::Trunc> delay;
+    Vibrato vibrato;
+
     Worker(){
         maxAcceleration = 1;
         mass = 1.0;
@@ -873,6 +897,87 @@ struct Worker : Agent {
 		}
         body.decompress();
         body.generateNormals();
+
+        //audio basic
+        soundSource = new SoundSource;
+        // soundSource->farClip(3);
+        // soundSource->farBias(0);
+        // soundSource->useAttenuation(true);
+        // soundSource->attenuation(3);
+        SearchPaths searchPaths;
+        searchPaths.addSearchPath("..");
+        string filePath = searchPaths.find("socialismgood.wav").filepath();
+        player.load(filePath.c_str());
+        v_player.load(filePath.c_str());
+        audioTimer = 0;
+        
+
+        //effects
+        //for sample
+        smoothRate.freq(3.14159);
+        smoothRate = 0.07;
+
+        //for hilbert
+		shiftMod.period(16);
+        shifter.freq(200);
+
+        //for one pole
+        mod.period(120);
+        mod.phase(0.5);
+		
+        //biquad
+        bq.res(4);
+        bq.level(2);
+
+        //delay
+        tmr.period(5);
+        tmr.phaseMax();
+        delay.maxDelay(0.4);
+        delay.delay(0.2);
+    }
+
+    void onProcess(AudioIOData& io){
+        while (io()){
+            player.rate(smoothRate());
+            float source = player();
+
+            //experimental area
+            
+            //hilbert transformation
+            gam::Complex<float> c = hil(source);
+            shifter.freq(shiftMod.hann()*200);
+		    c *= shifter();
+            float sr = c.r;
+            float si = c.i;
+
+            //one pole
+            float cutoff = gam::scl::pow3(mod.triU()) * 2000;
+            onePole.freq(1000 + cutoff * 0.2);
+            //float s = onePole(sr) * 0.3 + onePole(si) * 0.3;
+            
+            float s = onePole(sr + si) * 0.2 + s_noise() * gam::scl::pow3(mod.triU()) * 0.06;
+            s = vibrato(s);
+
+            //biquad
+            bq.type(gam::BAND_PASS);
+            bq.freq(500 + cutoff * 0.08);
+            float sample = bq(s);
+
+            //delay
+            // if (tmr()) {
+            //     sample = bq(s);
+            // }
+            // sample += delay(sample + delay()*0.2);
+            //sample += delay(sample) + delay.read(0.15) + delay.read(0.39);
+            
+            //write sample
+            //soundSource->writeSample(sample);
+            //soundSource->writeSample(source * 0.01); 
+
+            //for bypass only
+            io.out(0) += sample;
+            io.out(1) += sample;
+        }
     }
     void run(vector<Factory>& fs, vector<Worker>& others, vector<Capitalist>& capitalist){
         if (jobHunting){
