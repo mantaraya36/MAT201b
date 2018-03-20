@@ -80,11 +80,12 @@ struct Capitalist : Agent{
     float rate;
     double audioTimer;
     // gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
-    // gam::OnePole<> smoothRate;
-    // DynamicSamplePlayer v_player;
+    gam::OnePole<> smoothRate;
+    DynamicSamplePlayer player;
 
     //gamma effects
     //gam::LFO<> osc;
+    gam::SineD<> sine;
 	gam::LFO<> shiftMod;
     gam::LFO<> mod;
 	gam::Hilbert<> hil;
@@ -143,22 +144,25 @@ struct Capitalist : Agent{
 
         //audio basic
         soundSource = new SoundSource;
-        // soundSource->farClip(3);
+        soundSource->farClip(25);
         // soundSource->farBias(0);
-        // soundSource->useAttenuation(true);
-        // soundSource->attenuation(3);
-        // SearchPaths searchPaths;
-        // searchPaths.addSearchPath("..");
-        // string filePath = searchPaths.find("socialismgood.wav").filepath();
-        // player.load(filePath.c_str());
-        // v_player.load(filePath.c_str());
+        soundSource->useAttenuation(true);
+        soundSource->attenuation(25);
+        SearchPaths searchPaths;
+        searchPaths.addSearchPath("..");
+        string filePath = searchPaths.find("socialismgood.wav").filepath();
+        player.load(filePath.c_str());
+        //v_player.load(filePath.c_str());
         audioTimer = 0;
         
 
         //effects
+        //sine
+        sine.freq(440);
         //for sample
         smoothRate.freq(3.14159);
-        smoothRate = 0.07;
+        smoothRate = -2.5;
+        //smoothRate = 0.07;
 
         //for hilbert
 		shiftMod.period(16);
@@ -173,7 +177,7 @@ struct Capitalist : Agent{
         bq.level(2);
 
         //delay
-        tmr.period(5);
+        tmr.period(0.8);
         tmr.phaseMax();
         delay.maxDelay(0.4);
         delay.delay(0.2);
@@ -182,11 +186,15 @@ struct Capitalist : Agent{
     virtual ~Capitalist(){
 
     }
-    void onProcess(AudioIOData& io){
+    float onProcess(AudioIOData& io){
         while (io()){
             player.rate(smoothRate());
-            float source = player();
-
+            if (tmr()){
+                //source = player();
+                sine.set(gam::rnd::uni(10,1)*50, 0.2, gam::rnd::lin(2., 0.1));
+            }
+            float source = sine();
+            float sineClick = sine();
             //experimental area
             
             //hilbert transformation
@@ -207,8 +215,8 @@ struct Capitalist : Agent{
             //biquad
             bq.type(gam::BAND_PASS);
             bq.freq(500 + cutoff * 0.08);
-            float sample = bq(s);
-
+            float sample = bq(s) + sineClick;
+            return sample;
             //delay
             // if (tmr()) {
             //     sample = bq(s);
@@ -241,7 +249,7 @@ struct Capitalist : Agent{
         facingToward(movingTarget);
         update();
         moneyConsumption();
-        updateSamplePlayer();
+        //updateSamplePlayer();
     }
     void updateSamplePlayer(){
         audioTimer += 1 / 60;
@@ -821,28 +829,29 @@ struct Worker : Agent {
     float bodyHeight;
     int workerID;
 
-    SoundSource *soundSource;
-    using Agent::pose;
-    float oscPhase = 0;
-    float oscEnv = 1;
-    float rate;
-    double audioTimer;
-    gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
-    gam::OnePole<> smoothRate;
-    DynamicSamplePlayer v_player;
+    // SoundSource *soundSource;
+    // using Agent::pose;
+    // float oscPhase = 0;
+    // float oscEnv = 1;
+    // float rate;
+    // double audioTimer;
+    // gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
+    // gam::OnePole<> smoothRate;
+    // DynamicSamplePlayer v_player;
 
     //gamma effects
     //gam::LFO<> osc;
-	gam::LFO<> shiftMod;
-    gam::LFO<> mod;
-	gam::Hilbert<> hil;
-	gam::CSine<> shifter;
-    gam::Biquad<> bq;
-    gam::OnePole<> onePole;
-    gam::Accum<> tmr;
-    gam::NoisePink<> s_noise;
-    gam::Delay<float, gam::ipl::Trunc> delay;
-    Vibrato vibrato;
+	// gam::LFO<> shiftMod;
+    // gam::LFO<> mod;
+	// gam::Hilbert<> hil;
+	// gam::CSine<> shifter;
+    // gam::Biquad<> bq;
+    // gam::OnePole<> onePole;
+    // gam::Accum<> tmr;
+    // gam::NoisePink<> s_noise;
+    // gam::Delay<float, gam::ipl::Trunc> delay;
+    // gam::SineD<> sine;
+    // Vibrato vibrato;
 
     Worker(){
         maxAcceleration = 1;
@@ -899,84 +908,90 @@ struct Worker : Agent {
         body.generateNormals();
 
         //audio basic
-        soundSource = new SoundSource;
+        // soundSource = new SoundSource;
         // soundSource->farClip(3);
-        // soundSource->farBias(0);
+        // //soundSource->farBias(0);
         // soundSource->useAttenuation(true);
         // soundSource->attenuation(3);
-        SearchPaths searchPaths;
-        searchPaths.addSearchPath("..");
-        string filePath = searchPaths.find("socialismgood.wav").filepath();
-        player.load(filePath.c_str());
-        v_player.load(filePath.c_str());
-        audioTimer = 0;
+        // // SearchPaths searchPaths;
+        // // searchPaths.addSearchPath("..");
+        // // string filePath = searchPaths.find("socialismgood.wav").filepath();
+        // // player.load(filePath.c_str());
+        // // v_player.load(filePath.c_str());
+        // // audioTimer = 0;
         
 
-        //effects
-        //for sample
-        smoothRate.freq(3.14159);
-        smoothRate = 0.07;
+        // //effects
+        // //oscillator
+        // sine.freq(440);
 
-        //for hilbert
-		shiftMod.period(16);
-        shifter.freq(200);
+        // //for sample
+        // // smoothRate.freq(3.14159);
+        // // smoothRate = 0.07;
 
-        //for one pole
-        mod.period(120);
-        mod.phase(0.5);
+        // //for hilbert
+		// shiftMod.period(16);
+        // shifter.freq(200);
+
+        // //for one pole
+        // mod.period(120);
+        // mod.phase(0.5);
 		
-        //biquad
-        bq.res(4);
-        bq.level(2);
+        // //biquad
+        // bq.res(4);
+        // bq.level(2);
 
-        //delay
-        tmr.period(5);
-        tmr.phaseMax();
-        delay.maxDelay(0.4);
-        delay.delay(0.2);
+        // //delay
+        // tmr.period(5);
+        // tmr.phaseMax();
+        // delay.maxDelay(0.4);
+        // delay.delay(0.2);
     }
 
     void onProcess(AudioIOData& io){
         while (io()){
-            player.rate(smoothRate());
-            float source = player();
-
-            //experimental area
-            
-            //hilbert transformation
-            gam::Complex<float> c = hil(source);
-            shifter.freq(shiftMod.hann()*200);
-		    c *= shifter();
-            float sr = c.r;
-            float si = c.i;
-
-            //one pole
-            float cutoff = gam::scl::pow3(mod.triU()) * 2000;
-            onePole.freq(1000 + cutoff * 0.2);
-            //float s = onePole(sr) * 0.3 + onePole(si) * 0.3;
-            
-            float s = onePole(sr + si) * 0.2 + s_noise() * gam::scl::pow3(mod.triU()) * 0.06;
-            s = vibrato(s);
-
-            //biquad
-            bq.type(gam::BAND_PASS);
-            bq.freq(500 + cutoff * 0.08);
-            float sample = bq(s);
-
-            //delay
-            // if (tmr()) {
-            //     sample = bq(s);
+            // //player.rate(smoothRate());
+            // if (tmr()){
+            //     sine.set(gam::rnd::uni(10,1)*50, 0.2, gam::rnd::lin(2., 0.1));
             // }
-            // sample += delay(sample + delay()*0.2);
-            //sample += delay(sample) + delay.read(0.15) + delay.read(0.39);
-            
-            //write sample
-            //soundSource->writeSample(sample);
-            //soundSource->writeSample(source * 0.01); 
+            // float source = sine();
 
-            //for bypass only
-            io.out(0) += sample;
-            io.out(1) += sample;
+            // //experimental area
+            
+            // //hilbert transformation
+            // gam::Complex<float> c = hil(source);
+            // shifter.freq(shiftMod.hann()*200);
+		    // c *= shifter();
+            // float sr = c.r;
+            // float si = c.i;
+
+            // //one pole
+            // float cutoff = gam::scl::pow3(mod.triU()) * 2000;
+            // onePole.freq(1000 + cutoff * 0.2);
+            // //float s = onePole(sr) * 0.3 + onePole(si) * 0.3;
+            
+            // float s = onePole(sr + si) * 0.2 + s_noise() * gam::scl::pow3(mod.triU()) * 0.06;
+            // s = vibrato(s);
+
+            // //biquad
+            // bq.type(gam::BAND_PASS);
+            // bq.freq(500 + cutoff * 0.08);
+            // float sample = bq(s);
+
+            // //delay
+            // // if (tmr()) {
+            // //     sample = bq(s);
+            // // }
+            // // sample += delay(sample + delay()*0.2);
+            // //sample += delay(sample) + delay.read(0.15) + delay.read(0.39);
+            
+            // //write sample
+            // //soundSource->writeSample(sample);
+            // //soundSource->writeSample(source * 0.01); 
+
+            // //for bypass only
+            // io.out(0) += source;
+            // io.out(1) += source;
         }
     }
     void run(vector<Factory>& fs, vector<Worker>& others, vector<Capitalist>& capitalist){

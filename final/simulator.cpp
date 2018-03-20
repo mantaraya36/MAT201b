@@ -17,6 +17,10 @@ using namespace std;
 //Mengyu Chen, 2018
 //mengyuchen@ucsb.edu
 
+#define BLOCK_SIZE 256
+#define SAMPLE_RATE 44100
+#define MAXIMUM_NUMBER_OF_SOUND_SOURCES (100)
+
 struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     Material material;
     Light light;
@@ -47,6 +51,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 
     //cameraMode
     int cameraSwitch = 0;
+
     //shader
     ShaderProgram shader;
     float phase;
@@ -54,8 +59,17 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     //background noise
     Mesh geom;
 
+    //Vbap audio spatializer
+    AudioScene vbap_scene; //to not confuse with scene() 
+    SpeakerLayout* speakerLayout;
+    //Vbap* panner;
+    Spatializer* panner;
+    Listener* listener;
+    SoundSource *source[MAXIMUM_NUMBER_OF_SOUND_SOURCES];
+
     MyApp() : maker(Simulator::defaultBroadcastIP()),
-        InterfaceServerClient(Simulator::defaultInterfaceServerIP())         {
+        InterfaceServerClient(Simulator::defaultInterfaceServerIP()), vbap_scene(BLOCK_SIZE)       {
+        
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 50);             // place the viewer //80
         //lens().far(400);                 // set the far clipping plane
@@ -90,45 +104,41 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         //shader
         phase = 0;
         lens().near(0.1).far(150);        //for fog
-        shader.compile(
-		R"(
-			/* 'fogCurve' determines the distribution of fog between the near and far planes.
-			Positive values give more dense fog while negative values give less dense
-			fog. A value of	zero results in a linear distribution. */
-			uniform float fogCurve;
-
-			/* The fog amount in [0,1] passed to the fragment shader. */
-			varying float fogFactor;
-
-			void main(){
-				gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-				gl_FrontColor = gl_Color;
-
-				float z = gl_Position.z;
-				//float z = gl_FragCoord.z / gl_FragCoord.w; /* per-frament fog would use this */
-				fogFactor = (z - gl_Fog.start) * gl_Fog.scale;
-				fogFactor = clamp(fogFactor, 0., 1.);
-				if(fogCurve != 0.){
-					fogFactor = (1. - exp(-fogCurve*fogFactor))/(1. - exp(-fogCurve));
-				}
-			}
-		)",
-		R"(
-			varying float fogFactor;
-
-			void main(){
-				gl_FragColor = mix(gl_Color, gl_Fog.color, fogFactor);
-			}
-		)"
-		);
-
+        
         //allo audio
-        AlloSphereAudioSpatializer::initAudio();
+        bool inSphere = system("ls /alloshare >> /dev/null 2>&1") == 0;
         AlloSphereAudioSpatializer::initSpatialization();
-        for (unsigned i = 0; i < 15; ++i) {
-            scene()->addSource(*capitalists.cs[i].soundSource);
+
+        //switch between personal computer or allosphere
+        if (!inSphere){
+            speakerLayout = new StereoSpeakerLayout();
+            panner = new StereoPanner(*speakerLayout);
+            panner->print();
+        } else {
+            speakerLayout = new AlloSphereSpeakerLayout();
+            panner = new Vbap(*speakerLayout);
+            panner->print();
         }
-        scene()->usePerSampleProcessing(false);
+        listener = vbap_scene.createListener(panner);
+        listener->compile(); // XXX need this?
+
+        float near = 0.2;
+        float listenRadius = 24;
+
+        //load audio source, capitalists first
+        for (unsigned i = 0; i < capitalists.cs.size(); ++i) {
+            source[i] = new SoundSource();
+            source[i]->nearClip(near);
+            source[i]->farClip(listenRadius);
+            source[i]->law(ATTEN_LINEAR);
+            //source[i]->law(ATTEN_INVERSE_SQUARE);
+            source[i]->dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
+            //source[i].law(ATTEN_INVERSE);
+            vbap_scene.addSource(*source[i]);
+        }
+        vbap_scene.usePerSampleProcessing(false);
+        AlloSphereAudioSpatializer::initAudio("ECHO X5", 44100, BLOCK_SIZE, 60, 60);
+        fflush(stdout);
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
@@ -309,16 +319,33 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     }
     virtual void onSound(AudioIOData& io) {
         gam::Sync::master().spu(AlloSphereAudioSpatializer::audioIO().fps());
-        for (unsigned i = 0; i < 15; ++i){
-           
-           capitalists.cs[i].updateAuidoPose();
-           capitalists.cs[i].onProcess(io);
-           io.frame(0);
+        
+        float x = nav().pos().x;
+        float y = nav().pos().y;
+        float z = nav().pos().z;
+        listener->pos(x,y,z);
+
+        //capitlist sound
+        for (int i = 0; i < capitalists.cs.size(); i++){
+            source[i]->pos(capitalists.cs[i].pose.pos().x,capitalists.cs[i].pose.pos().y, capitalists.cs[i].pose.pos().z);
+                //double d = (source[i].pos() - listener->pos()).mag();
+                //double a = source[i].attenuation(d);
+                //double db = log10(a) * 20.0;
+                //cout << d << "," << a << "," << db << endl;
         }
-        //listener()->pose(nav());
-        //io.frame(0);
-        //scene()->render(io);
-   
+        int numFrames = io.framesPerBuffer();
+        for (int k = 0; k < numFrames; k++) {
+            for (int i = 0; i < capitalists.cs.size(); i++) {
+                //io.frame(0);
+                float f = 0;
+                f = capitalists.cs[i].onProcess(io);
+                double d = isnan(f) ? 0.0 : (double)f; // XXX need this nan check?
+                source[i]->writeSample(d);
+                io.frame(0);
+            }
+        }
+        
+        vbap_scene.render(io);        
     }
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {
         switch(k.key()){
