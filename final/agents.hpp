@@ -15,7 +15,7 @@
 #include "Gamma/Noise.h"
 #include "Gamma/Oscillator.h"
 #include "Gamma/SamplePlayer.h"
-#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
+//#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
 #include "alloutil/al_Simulator.hpp"
 
 using namespace al;
@@ -74,12 +74,12 @@ struct Capitalist : Agent{
     float totalResourceHoldings;
 
     //audio params
-    SoundSource *soundSource;
+    // SoundSource *soundSource;
     using Agent::pose;
-    float oscPhase = 0;
-    float oscEnv = 1;
-    float rate;
-    double audioTimer;
+    // float oscPhase = 0;
+    // float oscEnv = 1;
+    // float rate;
+    //double audioTimer;
     // gam::SamplePlayer<float, gam::ipl::Linear, gam::phsInc::Loop> player;
     // gam::OnePole<> smoothRate;
     // DynamicSamplePlayer player;
@@ -180,8 +180,8 @@ struct Capitalist : Agent{
         //delay
         tmr.period(0.75);
         tmr.phaseMax();
-        delay.maxDelay(0.4);
-        delay.delay(0.2);
+        // delay.maxDelay(0.4);
+        // delay.delay(0.2);
 
     }
     virtual ~Capitalist(){
@@ -284,10 +284,10 @@ struct Capitalist : Agent{
     //         player.reset();
     //     }
     // }
-    void updateAuidoPose(){
-        //audio
-        soundSource->pose(Agent::pose);
-    }
+    // void updateAuidoPose(){
+    //     //audio
+    //     soundSource->pose(Agent::pose);
+    // }
     void moneyConsumption(){
         moneyTimer ++;
         if (moneyTimer == 0){

@@ -5,7 +5,11 @@
 #include "agent_managers.hpp"
 #include "location_managers.hpp"
 #include "common.hpp"
-#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
+//#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
+#include "alloutil/al_AlloSphereSpeakerLayout.hpp"
+#include "allocore/sound/al_StereoPanner.hpp"
+#include "allocore/sound/al_Vbap.hpp"
+#include "allocore/sound/al_AudioScene.hpp"
 #include "alloutil/al_Simulator.hpp"
 #include "Cuttlebone/Cuttlebone.hpp"
 #include "alloGLV/al_ControlGLV.hpp"
@@ -17,11 +21,21 @@ using namespace std;
 //Mengyu Chen, 2018
 //mengyuchen@ucsb.edu
 
-#define BLOCK_SIZE 256
+#define BLOCK_SIZE (256)
 #define SAMPLE_RATE 44100
 #define MAXIMUM_NUMBER_OF_SOUND_SOURCES (100)
 
-struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
+ //Vbap audio spatializer
+static AudioScene  v_scene(BLOCK_SIZE); //to not confuse with scene() 
+static SpeakerLayout speakerLayout;
+    //Vbap* panner;
+static Spatializer *panner;
+//static StereoPanner *panner;
+static Listener *listener;
+static SoundSource *source[15];
+//static SoundSource *sourceWorker[75];
+
+struct MyApp : App, InterfaceServerClient {
     Material material;
     Light light;
 
@@ -59,17 +73,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     //background noise
     Mesh geom;
 
-    //Vbap audio spatializer
-    AudioScene vbap_scene; //to not confuse with scene() 
-    SpeakerLayout* speakerLayout;
-    //Vbap* panner;
-    Spatializer* panner;
-    Listener* listener;
-    SoundSource *source[15];
-    SoundSource *sourceWorker[75];
-
     MyApp() : maker(Simulator::defaultBroadcastIP()),
-        InterfaceServerClient(Simulator::defaultInterfaceServerIP()), vbap_scene(BLOCK_SIZE)       {
+        InterfaceServerClient(Simulator::defaultInterfaceServerIP())       {
         
         light.pos(0, 0, 0);              // place the light
         nav().pos(0, 0, 50);             // place the viewer //80
@@ -84,8 +89,6 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             background(Color(1,1,1));
         }
         initWindow();
-        //initAudio(44100);
-        
 
         //background geom noise
         Mat4f xfm;
@@ -108,23 +111,25 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
         
         //allo audio
         bool inSphere = system("ls /alloshare >> /dev/null 2>&1") == 0;
-        AlloSphereAudioSpatializer::initSpatialization();
+        //AlloSphereAudioSpatializer::initSpatialization();
+        App::initAudio(SAMPLE_RATE, BLOCK_SIZE, 2, 0);
 
         //switch between personal computer or allosphere
         if (!inSphere){
-            speakerLayout = new StereoSpeakerLayout();
-            panner = new StereoPanner(*speakerLayout);
+            speakerLayout = StereoSpeakerLayout();
+            panner = new StereoPanner(speakerLayout);
             panner->print();
         } else {
-            speakerLayout = new AlloSphereSpeakerLayout();
-            panner = new Vbap(*speakerLayout);
+            speakerLayout = AlloSphereSpeakerLayout();
+            //panner = new StereoPanner(speakerLayout);
+            panner = new Vbap(speakerLayout);
             panner->print();
         }
-        listener = vbap_scene.createListener(panner);
-        listener->compile(); // XXX need this?
+        listener = v_scene.createListener(panner);
+        //listener->compile(); // XXX need this?
 
         float near = 0.2;
-        float listenRadius = 24;
+        float listenRadius = 36;
 
         //load audio source, capitalists first
         for (unsigned i = 0; i < capitalists.cs.size(); ++i) {
@@ -135,22 +140,22 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             //source[i]->law(ATTEN_INVERSE_SQUARE);
             source[i]->dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
             //source[i].law(ATTEN_INVERSE);
-            vbap_scene.addSource(*source[i]);
+            v_scene.addSource(*source[i]);
         }
-         for (unsigned i = 0; i < workers.workers.size(); ++i) {
-            sourceWorker[i] = new SoundSource();
-            sourceWorker[i]->nearClip(near);
-            sourceWorker[i]->farClip(listenRadius * 0.75);
-            sourceWorker[i]->law(ATTEN_LINEAR);
-            //source[i]->law(ATTEN_INVERSE_SQUARE);
-            sourceWorker[i]->dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
-            //source[i].law(ATTEN_INVERSE);
-            vbap_scene.addSource(*sourceWorker[i]);
-        }
+        //  for (unsigned i = 0; i < workers.workers.size(); ++i) {
+        //     sourceWorker[i] = new SoundSource();
+        //     sourceWorker[i]->nearClip(near);
+        //     sourceWorker[i]->farClip(listenRadius * 0.75);
+        //     sourceWorker[i]->law(ATTEN_LINEAR);
+        //     //source[i]->law(ATTEN_INVERSE_SQUARE);
+        //     sourceWorker[i]->dopplerType(DOPPLER_NONE); // XXX doppler kills when moving fast!
+        //     //source[i].law(ATTEN_INVERSE);
+        //     v_scene.addSource(*sourceWorker[i]);
+        // }
         
-        vbap_scene.usePerSampleProcessing(false);
-        AlloSphereAudioSpatializer::initAudio("ECHO X5", 44100, BLOCK_SIZE, 60, 60);
-        fflush(stdout);
+        v_scene.usePerSampleProcessing(false);
+        //AlloSphereAudioSpatializer::initAudio("ECHO X5", 44100, BLOCK_SIZE, 60, 60);
+        //fflush(stdout);
 
         //generate factories according to number of capitalists
         factories.generate(capitalists);
@@ -162,7 +167,7 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     }
     void onAnimate(double dt) {
         //shader phase
-        phase += 0.00017; if(phase>=1) --phase;
+        //phase += 0.00017; if(phase>=1) --phase;
         //this updates your nav, especially you use a controller / joystick
         while (InterfaceServerClient::oscRecv().recv()){
 
@@ -223,13 +228,13 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
                 //cout << d << "," << a << "," << db << endl;
         }
         //worker sound position
-        for (int i = 0; i < workers.workers.size(); i++){
-            sourceWorker[i]->pos(workers.workers[i].pose.pos().x,workers.workers[i].pose.pos().y, workers.workers[i].pose.pos().z);
-                //double d = (source[i].pos() - listener->pos()).mag();
-                //double a = source[i].attenuation(d);
-                //double db = log10(a) * 20.0;
-                //cout << d << "," << a << "," << db << endl;
-        }
+        // for (int i = 0; i < workers.workers.size(); i++){
+        //     sourceWorker[i]->pos(workers.workers[i].pose.pos().x,workers.workers[i].pose.pos().y, workers.workers[i].pose.pos().z);
+        //         //double d = (source[i].pos() - listener->pos()).mag();
+        //         //double a = source[i].attenuation(d);
+        //         //double db = log10(a) * 20.0;
+        //         //cout << d << "," << a << "," << db << endl;
+        // }
 
         //debug
         // cout << workers[0].id_ClosestFactory << " i m heading to " << endl;
@@ -319,18 +324,22 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
     }
     void onDraw(Graphics& g) {
         if (renderModeSwitch == 1){
+            g.fog(lens().far() * 2, lens().far(), background());
             g.blendSub();
-            g.fog(lens().far(), lens().near()+2, background());
-            shader.begin();
-			shader.uniform("fogCurve", 4*cos(8*phase*6.2832));
+            
         } else if (renderModeSwitch == 2){
+            //g.fog(lens().far(), lens().near(), background());
             g.blendAdd();
-        } else {
+        } else if (renderModeSwitch == 3) {
+            
+            g.fog(lens().far(), lens().near()+2, background());
             g.blending(false);
+            shader.begin();
+			//shader.uniform("fogCurve", 4*cos(8*phase*6.2832));
         }
-        
-            material();
             light();
+            material();
+            
             //glEnable(GL_POINT_SPRITE);
             
             //draw all the entities
@@ -341,14 +350,14 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
             miners.draw(g);
             workers.draw(g);
             g.draw(geom);
-        if (renderModeSwitch == 1){
+        if (renderModeSwitch == 3){
             shader.end();
         }
 
     }
     virtual void onSound(AudioIOData& io) {
-        gam::Sync::master().spu(AlloSphereAudioSpatializer::audioIO().fps());
-        
+        //gam::Sync::master().spu(AlloSphereAudioSpatializer::audioIO().fps());
+        gam::Sync::master().spu(audioIO().fps());
         float x = nav().pos().x;
         float y = nav().pos().y;
         float z = nav().pos().z;
@@ -368,17 +377,17 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
                 io.frame(0);
             }
             //worker sample
-            for (int i = 0; i < workers.workers.size(); i ++){
-                float f = 0;
-                f = workers.workers[i].onProcess(io);
-                double d = isnan(f) ? 0.0 : (double)f;
-                sourceWorker[i]->writeSample(d);
-                io.frame(0);
-            }
+            // for (int i = 0; i < workers.workers.size(); i ++){
+            //     float f = 0;
+            //     f = workers.workers[i].onProcess(io);
+            //     double d = isnan(f) ? 0.0 : (double)f;
+            //     sourceWorker[i]->writeSample(d);
+            //     io.frame(0);
+            // }
         }
-        //io.frame(0);
+        io.frame(0);
         
-        vbap_scene.render(io);        
+        v_scene.render(io);        
     }
     void onKeyDown(const ViewpointWindow&, const Keyboard& k) {
         switch(k.key()){
@@ -407,7 +416,8 @@ struct MyApp : App, AlloSphereAudioSpatializer, InterfaceServerClient {
 
 int main() { 
     MyApp app;
-    app.AlloSphereAudioSpatializer::audioIO().start();
+    //app.AlloSphereAudioSpatializer::audioIO().start();
+
     app.InterfaceServerClient::connect();
     app.maker.start();
     app.start(); 
