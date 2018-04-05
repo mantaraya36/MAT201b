@@ -107,7 +107,7 @@ struct MyApp : App, InterfaceServerClient {
 
         //shader
         phase = 0;
-        lens().near(0.1).far(150);        //for fog
+        lens().near(0.1).far(250);        //for fog
         
         //allo audio
         bool inSphere = system("ls /alloshare >> /dev/null 2>&1") == 0;
