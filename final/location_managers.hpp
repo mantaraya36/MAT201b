@@ -1,7 +1,7 @@
 #ifndef INCLUDE_LOCATION_MANAGERS_HPP
 #define INCLUDE_LOCATION_MANAGERS_HPP
 
-#include "allocore/io/al_App.hpp"
+#include "al/core/app/al_App.hpp"
 #include "locations.hpp"
 #include "meshes.hpp"
 #include "status_manager.hpp"
@@ -34,7 +34,7 @@ struct Metropolis{
         }
     }
     void mapCapitalistStats(vector<Capitalist>& capitalists){
-        for (int i = 0; i < capitalists.size(); i ++){
+        for (size_t i = 0; i < capitalists.size(); i ++){
             mbs[i].maxBuildings = capitalists.size();
             mbs[i].scaleFactorZ = MapValue(capitalists[i].capitalHoldings, 0, 500000, 0.1, 20);
             mbs[i].position.x = MetroRadius * 2 * sin(MapValue(mbs[i].buildingID, 0, mbs[i].maxBuildings, 0, M_PI * 2));
@@ -169,12 +169,12 @@ struct NaturalResourcePointsCollection {
     void checkMinerPick(vector<Miner>& miners){
         for (int k = nrps.size() - 1; k >= 0; k --){
             Natural_Resource_Point& nrp = nrps[k];
-            for (int i = 0; i < nrp.resources.size(); i ++){
+            for (size_t i = 0; i < nrp.resources.size(); i ++){
                 nrp.resources[i].beingPicked = false;
                 
             }
         }
-        for (int j = 0; j < miners.size(); j ++){
+        for (size_t j = 0; j < miners.size(); j ++){
                 if (miners[j].distToClosestResource < miners[j].pickingRange && miners[j].resourcePointFound == true){
                     nrps[miners[j].id_ClosestNRP].resources[miners[j].id_ClosestResource].beingPicked = true;
             } 

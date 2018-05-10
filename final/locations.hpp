@@ -1,7 +1,8 @@
 #ifndef INCLUDE_LOCATIONS_HPP
 #define INCLUDE_LOCATIONS_HPP
 
-#include "allocore/io/al_App.hpp"
+#include "al/core/app/al_App.hpp"
+
 #include "helper.hpp"
 #include "location_base.hpp"
 #include "agents.hpp"
@@ -82,7 +83,7 @@ struct MetroBuilding : Location{
 			mesh.color(HSV(0.06 + f*0.1,0.8,1));
             mesh_wire.color(HSV(0.06 + f*0.1,0.8,1));
 		}
-        mesh_wire.primitive(Graphics::LINE_LOOP);
+        mesh_wire.primitive(Mesh::LINE_LOOP);
         mesh.decompress();
         mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
@@ -155,7 +156,7 @@ struct Factory : Location{
         addTorus(mesh_wire, meshInnerRadius * 1.4, meshOuterRadius * 1.4, r_int(3, 6), r_int(3, 6));
         mesh.decompress();
         mesh.generateNormals();
-        mesh_wire.primitive(Graphics::LINE_LOOP);
+        mesh_wire.primitive(Mesh::LINE_LOOP);
         c = HSV(0.56, 0.3, 1);
         
         angle1 = 0.0f;
@@ -168,7 +169,7 @@ struct Factory : Location{
         workersNeededNum = ceil((float)materialStocks / 6);
         maxWorkersAllowed = 40;
         whitelist.resize(maxWorkersAllowed);
-        for (int i = 0; i < whitelist.size(); i ++){
+        for (size_t i = 0; i < whitelist.size(); i ++){
             whitelist[i] = 99999;
         }
         workersWorkingNum = 0;
@@ -255,7 +256,7 @@ struct Factory : Location{
         } else {
             hiring = true;
         }
-        for (int i = workersNeededNum; i < whitelist.size(); i ++ ){
+        for (size_t i = workersNeededNum; i < whitelist.size(); i ++ ){
             whitelist[i] = 99999;
         }
     }
@@ -311,7 +312,7 @@ struct Natural_Resource_Point : Location{
     float mesh_Nv;
     float resource_distribution_density;
     int afterDrainTimer;
-    int pickCount;
+    size_t pickCount;
     int maxResourceNum;
     int r_index;
     int initResourceNum;
@@ -336,7 +337,7 @@ struct Natural_Resource_Point : Location{
 			mesh.color(HSV(f*0.1,1,1));
             mesh_wire.color(HSV(f*0.1,1,1));
 		}
-        mesh_wire.primitive(Graphics::LINE_LOOP);
+        mesh_wire.primitive(Mesh::LINE_LOOP);
         mesh.decompress();
         mesh.generateNormals();
         //c = HSV(rnd::uniform(), 0.7, 1);
@@ -441,7 +442,7 @@ struct Natural_Resource_Point : Location{
     }
     bool drained(){
         pickCount = 0;
-        for (int i = 0; i < resources.size(); i++){
+        for (size_t i = 0; i < resources.size(); i++){
             if (drain_check[i]){
                 pickCount += 1;
             }

@@ -1,7 +1,9 @@
 #ifndef INCLUDE_HELPER_HPP
 #define INCLUDE_HELPER_HPP
 
-#include "allocore/io/al_App.hpp"
+#include "al/core/app/al_App.hpp"
+#include "al/core/math/al_Random.hpp"
+
 using namespace al;
 
 // helper function: makes a random vector

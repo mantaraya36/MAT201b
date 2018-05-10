@@ -1,7 +1,7 @@
 #ifndef INCLUDE_STATUS_MANAGER_HPP
 #define INCLUDE_STATUS_MANAGER_HPP
 
-#include "allocore/io/al_App.hpp"
+#include "al/core/app/al_App.hpp"
 #include "agent_managers.hpp"
 #include "location_managers.hpp"
 
@@ -111,7 +111,7 @@ struct MarketManager{
         float sum1 = 0;
         float sum2 = 0;
         float sum3 = 0;
-        for (int i = 0; i < miners.ms.size(); i++){
+        for (size_t i = 0; i < miners.ms.size(); i++){
             sum1 += miners.ms[i].collectRate;
             sum2 += miners.ms[i].maxLoad;
             sum3 += miners.ms[i].maxspeed;
@@ -144,7 +144,7 @@ struct MarketManager{
         richMiners = 0;
         richWorkers = 0;
         jobHuntingWorkers = 0;
-        for (int i = 0; i < capitalists.cs.size(); i ++){
+        for (size_t i = 0; i < capitalists.cs.size(); i ++){
             if (!capitalists.cs[i].bankrupted()){
                 liveCapitalists += 1;
                 if (capitalists.cs[i].capitalHoldings < capitalistPovertyLine){
@@ -154,7 +154,7 @@ struct MarketManager{
                 }
             }
         }
-        for (int i = 0; i < workers.workers.size(); i ++){
+        for (size_t i = 0; i < workers.workers.size(); i ++){
             if (!workers.workers[i].bankrupted()){
                 liveWorkers += 1;
                 if (workers.workers[i].jobHunting == true){
@@ -168,7 +168,7 @@ struct MarketManager{
             }
         }
         WorkerCapitalistRatio = liveWorkers / liveCapitalists;
-        for (int i = 0; i < miners.ms.size(); i++){
+        for (size_t i = 0; i < miners.ms.size(); i++){
             if (!miners.ms[i].bankrupted()){
                 liveMiners += 1;
                 if (miners.ms[i].capitalHoldings < minerPovertyLine){
@@ -180,7 +180,7 @@ struct MarketManager{
         }
         MinerCapitalistRatio = liveMiners / liveCapitalists;
 
-        for (int i = 0; i < factories.size(); i ++){
+        for (size_t i = 0; i < factories.size(); i ++){
             if (factories[i].operating()){
                 liveFactories += 1;
             }
@@ -199,7 +199,7 @@ struct MarketManager{
         float sum9 = 0;
         float sum10 = 0;
         float sum11 = 0;
-        for (int i = 0; i < capitalists.cs.size(); i ++){
+        for (size_t i = 0; i < capitalists.cs.size(); i ++){
             sum1 += capitalists.cs[i].capitalHoldings;
             sum6 += capitalists.cs[i].workersPayCheck;
             sum8 += capitalists.cs[i].resourceHoldings;
@@ -210,7 +210,7 @@ struct MarketManager{
         averageCapitalistResource = sum8 / liveCapitalists;
         averageCapitalistPoetryLevel = sum11 / liveCapitalists;
 
-        for (int i = 0; i < workers.workers.size(); i ++){
+        for (size_t i = 0; i < workers.workers.size(); i ++){
             sum2 += workers.workers[i].capitalHoldings;
             sum10 += workers.workers[i].poetryHoldings;
 
@@ -218,14 +218,14 @@ struct MarketManager{
         averageWorkerWealth = sum2 / liveWorkers;
         averageWorkerPoetryLevel = sum10 / liveWorkers;
 
-        for (int i = 0; i < miners.ms.size(); i++){
+        for (size_t i = 0; i < miners.ms.size(); i++){
             sum3 += miners.ms[i].capitalHoldings;
             sum9 += miners.ms[i].poetryHoldings;
         }
         averageMinerWealth = sum3 / liveMiners;
         averageMinerPoetryLevel = sum9 / liveMiners;
 
-        for (int i = 0; i < factories.size(); i ++){
+        for (size_t i = 0; i < factories.size(); i ++){
             sum4 += factories[i].grossProfits;
             sum5 += factories[i].capitalReserve;
             sum7 += factories[i].materialStocks;

@@ -1,7 +1,7 @@
 #ifndef INCLUDE_AGENT_MANAGERS_HPP
 #define INCLUDE_AGENT_MANAGERS_HPP
 
-#include "allocore/io/al_App.hpp"
+#include "al/core/app/al_App.hpp"
 #include "meshes.hpp"
 #include "agents.hpp"
 

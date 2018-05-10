@@ -1,7 +1,8 @@
 #ifndef INCLUDE_AGENT_BASE_HPP
 #define INCLUDE_AGENT_BASE_HPP
 
-#include "allocore/io/al_App.hpp"
+#include "al/core/app/al_App.hpp"
+#include "al/core/graphics/al_VAOMesh.hpp"
 
 float boundary_radius = 90.0f;
 
@@ -10,7 +11,7 @@ struct Agent{
     Pose pose;
     Color c;
     Quatd q;
-    MeshVBO body;
+    VAOMesh body;
     float maxspeed;
     float minspeed;
     float mass;

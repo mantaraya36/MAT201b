@@ -1,7 +1,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#include "allocore/io/al_App.hpp"
+#include "al/core/app/al_App.hpp"
 
 using namespace al;
 

@@ -1,9 +1,9 @@
 #ifndef INCLUDE_AGENTS_HPP
 #define INCLUDE_AGENTS_HPP
 
-#include "allocore/io/al_App.hpp"
-#include "allocore/math/al_Quat.hpp"
-#include "allocore/spatial/al_Pose.hpp"
+#include "al/core/app/al_App.hpp"
+#include "al/core/math/al_Quat.hpp"
+#include "al/core/spatial/al_Pose.hpp"
 #include "helper.hpp"
 #include "agent_base.hpp"
 #include "locations.hpp"
@@ -16,7 +16,7 @@
 #include "Gamma/Oscillator.h"
 #include "Gamma/SamplePlayer.h"
 //#include "alloutil/al_AlloSphereAudioSpatializer.hpp"
-#include "alloutil/al_Simulator.hpp"
+//#include "alloutil/al_Simulator.hpp"
 
 using namespace al;
 using namespace std;
@@ -584,7 +584,7 @@ struct Miner : Agent {
     void senseResourcePoints(vector<Natural_Resource_Point>& nrps){
         float min = 999;
         int min_id = 0;
-        for (int i = 0; i < nrps.size(); i++){
+        for (size_t i = 0; i < nrps.size(); i++){
             if (!nrps[i].drained()){
                 Vec3f dist_difference = pose.pos() - nrps[i].position;
                 float dist = dist_difference.mag();
@@ -607,7 +607,7 @@ struct Miner : Agent {
     void senseFruitfulPoints(vector<Natural_Resource_Point>& nrps){
         float maxFruitfulness = 0;
         int max_id = 0;     
-        for (int i = 0; i < nrps.size(); i++){
+        for (size_t i = 0; i < nrps.size(); i++){
             if (!nrps[i].drained()){
                 Vec3f dist_difference = pose.pos() - nrps[i].position;
                 float dist = dist_difference.mag();
@@ -634,7 +634,7 @@ struct Miner : Agent {
         float max_capitals = 0;
         int min_resource_id = 0;
         int max_rich_id = 0;
-        for (int i = 0; i < capitalists.size(); i++){
+        for (size_t i = 0; i < capitalists.size(); i++){
             if (!capitalists[i].bankrupted()){
 
                 //find the one needs resource
@@ -1134,7 +1134,7 @@ struct Worker : Agent {
         float max_material = 0;
         int max_material_id = 0;
         int openingCount = 0;     
-        for (int i = 0; i < fs.size(); i++){
+        for (size_t i = 0; i < fs.size(); i++){
             if (fs[i].operating() && fs[i].hiring){
                 openingCount += 1;
                 // Vec3f dist_difference = pose.pos() - fs[i].position;
@@ -1145,7 +1145,7 @@ struct Worker : Agent {
                 }
             }
         }
-        for (int i = 0; i < fs.size(); i ++){
+        for (size_t i = 0; i < fs.size(); i ++){
             if (fs[i].operating() && fs[i].hiring){
                 if (fs[i].materialStocks > max_material){
                     max_material = fs[i].materialStocks;
