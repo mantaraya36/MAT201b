@@ -58,6 +58,7 @@ public:
 // struct Natural_Resource_Point;
 // struct MetroBuilding;
 struct Capitalist : Agent{
+
     int mesh_Nv;
     Vec3f movingTarget;
     int desireChangeRate;
@@ -75,7 +76,7 @@ struct Capitalist : Agent{
 
     //audio params
     // SoundSource *soundSource;
-    using Agent::pose;
+//    using Agent::pose;
     // float oscPhase = 0;
     // float oscEnv = 1;
     // float rate;
@@ -111,7 +112,7 @@ struct Capitalist : Agent{
         desiredseparation = 3.0f;
         acceleration = Vec3f(0,0,0);
         velocity = Vec3f(0,0,0);
-        pose.pos() = r() * initialRadius;
+        pose().pos() = r() * initialRadius;
         bioClock = 0;
         movingTarget = r();
         desireChangeRate = r_int(50, 150);
@@ -187,7 +188,7 @@ struct Capitalist : Agent{
     virtual ~Capitalist(){
 
     }
-    float onProcess(AudioIOData& io){
+    virtual void onProcess(AudioIOData& io) override{
         while (io()){
             //player.rate(smoothRate());
             if (tmr()){
@@ -218,7 +219,9 @@ struct Capitalist : Agent{
             // bq.type(gam::BAND_PASS);
             // bq.freq(500 + cutoff * 0.08);
             float sample = s * 0.7 + sineClick * 0.3;
-            return sample;
+
+            io.out(0) = isnan(sample) ? 0.0 : (double)sample;
+//            return sample;
             //delay
             // if (tmr()) {
             //     sample = bq(s);
@@ -235,6 +238,7 @@ struct Capitalist : Agent{
             //io.out(1) += sample;
         }
     }
+
     void run(vector<MetroBuilding>& mbs){
         //cout << capitalHoldings << "i m capitalist" << endl;
         //basic behaviors
@@ -354,7 +358,7 @@ struct Capitalist : Agent{
         Vec3f sum;
         int count = 0;
         for (MetroBuilding mb : mbs){
-            Vec3f difference = pose.pos() - mb.position;
+            Vec3f difference = pose().pos() - mb.position;
             float d = difference.mag();
             if ((d > 0) && (d < desiredseparation * mb.scaleFactor)){
                 Vec3d diff = difference.normalize();
@@ -377,8 +381,8 @@ struct Capitalist : Agent{
 
     void draw(Graphics& g){
         g.pushMatrix();
-        g.translate(pose.pos());
-        g.rotate(pose.quat());
+        g.translate(pose().pos());
+        g.rotate(pose().quat());
         g.scale(scaleFactor);
         if (!bankrupted()){
             g.draw(body);
@@ -440,9 +444,9 @@ struct Miner : Agent {
         desiredseparation = 3.0f;
         acceleration = Vec3f(0,0,0);
         velocity = Vec3f(0,0,0);
-        pose.pos() = r();
-        temp_pos = pose.pos();
-        pose.pos() = pose.pos() * (NaturalRadius - FactoryRadius) + temp_pos.normalize(FactoryRadius + CirclePadding * 2.0);
+        pose().pos() = r();
+        temp_pos = pose().pos();
+        pose().pos() = pose().pos() * (NaturalRadius - FactoryRadius) + temp_pos.normalize(FactoryRadius + CirclePadding * 2.0);
         bioClock = 0;
         movingTarget = r();
         desireChangeRate = r_int(60, 90);
@@ -586,7 +590,7 @@ struct Miner : Agent {
         int min_id = 0;
         for (size_t i = 0; i < nrps.size(); i++){
             if (!nrps[i].drained()){
-                Vec3f dist_difference = pose.pos() - nrps[i].position;
+                Vec3f dist_difference = pose().pos() - nrps[i].position;
                 float dist = dist_difference.mag();
                 if (dist < min){
                     min = dist;
@@ -609,7 +613,7 @@ struct Miner : Agent {
         int max_id = 0;     
         for (size_t i = 0; i < nrps.size(); i++){
             if (!nrps[i].drained()){
-                Vec3f dist_difference = pose.pos() - nrps[i].position;
+                Vec3f dist_difference = pose().pos() - nrps[i].position;
                 float dist = dist_difference.mag();
                 if (dist < sensitivityNRP){
                     if (nrps[i].fruitfulness > maxFruitfulness){
@@ -649,9 +653,9 @@ struct Miner : Agent {
                 }
             }
         }
-        Vec3f dist_difference = pose.pos() - capitalists[min_resource_id].pose.pos();
+        Vec3f dist_difference = pose().pos() - capitalists[min_resource_id].pose().pos();
         float dist_resource = dist_difference.mag();
-        Vec3f dist_difference_2 = pose.pos() - capitalists[max_rich_id].pose.pos();
+        Vec3f dist_difference_2 = pose().pos() - capitalists[max_rich_id].pose().pos();
         float dist_rich = dist_difference_2.mag();
         
         if (dist_resource > dist_rich){
@@ -678,15 +682,15 @@ struct Miner : Agent {
     }
     void seekCapitalist(vector<Capitalist>& capitalists){
         if (!capitalists[id_ClosestCapitalist].bankrupted()){
-            Vec3f skCP(seek(capitalists[id_ClosestCapitalist].pose.pos()));
+            Vec3f skCP(seek(capitalists[id_ClosestCapitalist].pose().pos()));
             skCP *= 1.0;
             applyForce(skCP);
-            Vec3f t = capitalists[id_ClosestCapitalist].pose.pos();
+            Vec3f t = capitalists[id_ClosestCapitalist].pose().pos();
             facingToward(t);
         }
     }
     void exchangeResource(vector<Capitalist>& capitalists){
-        Vec3f t = capitalists[id_ClosestCapitalist].pose.pos();
+        Vec3f t = capitalists[id_ClosestCapitalist].pose().pos();
         Vec3f arCP(arrive(t));
         arCP *= 1.0;
         applyForce(arCP);
@@ -698,7 +702,7 @@ struct Miner : Agent {
         if (!nrps[id_ClosestNRP].drained()){
             for (int i = nrps[id_ClosestNRP].resources.size() - 1; i >= 0; i--){
                 if (!nrps[id_ClosestNRP].resources[i].isPicked){
-                    Vec3f dist_difference = pose.pos() - nrps[id_ClosestNRP].resources[i].position;
+                    Vec3f dist_difference = pose().pos() - nrps[id_ClosestNRP].resources[i].position;
                     double dist = dist_difference.mag();
                     if (dist < min){
                         min = dist;
@@ -768,7 +772,7 @@ struct Miner : Agent {
         int count = 0;
         int neighborCount = 0;
         for (Miner m : others){
-            Vec3f difference = pose.pos() - m.pose.pos();
+            Vec3f difference = pose().pos() - m.pose().pos();
             float d = difference.mag();
             if ((d > 0) && (d < desiredseparation)){
                 Vec3f diff = difference.normalize();
@@ -796,8 +800,8 @@ struct Miner : Agent {
     
     void draw(Graphics& g){
         g.pushMatrix();
-        g.translate(pose.pos());
-        g.rotate(pose.quat());
+        g.translate(pose().pos());
+        g.rotate(pose().quat());
         g.scale(scaleFactor);
         if (!bankrupted()){
             if (resourceHoldings >= 12){ g.draw(resource);}
@@ -834,7 +838,7 @@ struct Worker : Agent {
     float noiseLevel;
 
     // SoundSource *soundSource;
-    // using Agent::pose;
+    // using Agent::pose();
     // float oscPhase = 0;
     // float oscEnv = 1;
     // float rate;
@@ -871,9 +875,9 @@ struct Worker : Agent {
         desiredseparation = 3.0f;
         acceleration = Vec3f(0,0,0);
         velocity = Vec3f(0,0,0);
-        pose.pos() = r();
-        temp_pos = pose.pos();
-        pose.pos() = pose.pos() * (FactoryRadius - MetroRadius) + temp_pos.normalize(MetroRadius);
+        pose().pos() = r();
+        temp_pos = pose().pos();
+        pose().pos() = pose().pos() * (FactoryRadius - MetroRadius) + temp_pos.normalize(MetroRadius);
         bioClock = 0;
         movingTarget = r();
         workTarget = r();
@@ -961,7 +965,7 @@ struct Worker : Agent {
         noiseLevel = MapValue(neighborNum, 0, 100, 0.01, 0.4);
     }
 
-    float onProcess(AudioIOData& io){
+    virtual void onProcess(AudioIOData& io) override {
         while (io()){
             // //player.rate(smoothRate());
             // if (tmr()){
@@ -997,7 +1001,7 @@ struct Worker : Agent {
 
             //s = vibrato(s);
             sample = s;
-            return sample;
+//            return sample;
             // s = vibrato(s);
 
             // //biquad
@@ -1137,7 +1141,7 @@ struct Worker : Agent {
         for (size_t i = 0; i < fs.size(); i++){
             if (fs[i].operating() && fs[i].hiring){
                 openingCount += 1;
-                // Vec3f dist_difference = pose.pos() - fs[i].position;
+                // Vec3f dist_difference = pose().pos() - fs[i].position;
                 // float dist = dist_difference.mag();
                 if ( ( (fs[i].workersWorkingNum + 1) / fs[i].workersNeededNum) < min_emptyOpeningRatio){
                     min_emptyOpeningRatio = (fs[i].workersWorkingNum + 1) / fs[i].workersNeededNum;
@@ -1153,9 +1157,9 @@ struct Worker : Agent {
                 }
             }
         }
-        Vec3f dist_differenceA = pose.pos() - fs[min_EOR_id].position;
+        Vec3f dist_differenceA = pose().pos() - fs[min_EOR_id].position;
         float distA = dist_differenceA.mag();
-        Vec3f dist_differenceB = pose.pos() - fs[max_material_id].position;
+        Vec3f dist_differenceB = pose().pos() - fs[max_material_id].position;
         float distB = dist_differenceB.mag();
 
         //cout << min_EOR_id << " most empty fac" << fs[min_EOR_id].workersWorkingNum / fs[min_EOR_id].workersNeededNum << "  empty ratio" <<endl;
@@ -1192,10 +1196,10 @@ struct Worker : Agent {
     }
     void seekCapitalist(vector<Capitalist>& capitalist){
         if (!capitalist[id_ClosestFactory].bankrupted()){
-            Vec3f skCP(seek(capitalist[id_ClosestFactory].pose.pos()));
+            Vec3f skCP(seek(capitalist[id_ClosestFactory].pose().pos()));
             skCP *= 1.0;
             applyForce(skCP);
-            Vec3f t = capitalist[id_ClosestFactory].pose.pos();
+            Vec3f t = capitalist[id_ClosestFactory].pose().pos();
             facingToward(t);
         } else {
             inherentDesire(desireLevel, MetroRadius, FactoryRadius, desireChangeRate);
@@ -1225,7 +1229,7 @@ struct Worker : Agent {
         int count = 0;
         neighborNum = 0;
         for (Worker w : others){
-            Vec3f difference = pose.pos() - w.pose.pos();
+            Vec3f difference = pose().pos() - w.pose().pos();
             float d = difference.mag();
             if ((d > 0) && (d < desiredseparation)){
                 Vec3f diff = difference.normalize();
@@ -1248,8 +1252,8 @@ struct Worker : Agent {
     }
     void draw(Graphics& g){
         g.pushMatrix();
-        g.translate(pose.pos());
-        g.rotate(pose.quat());
+        g.translate(pose().pos());
+        g.rotate(pose().quat());
         g.scale(scaleFactor);
         if (!bankrupted()){
             g.draw(body);

@@ -102,12 +102,12 @@ struct Worker_Union{
         if (drawingLinks){
             for (int i = workers.size() - 1; i >= 0; i--){
                 if (workers[i].FactoryFound && !workers[i].bankrupted()){
-                    lines[i].vertices()[0] = workers[i].pose.pos();
+                    lines[i].vertices()[0] = workers[i].pose().pos();
                     lines[i].vertices()[1] = fs[workers[i].id_ClosestFactory].position;
                 } else {
                     lines[i].vertices()[0] = Vec3f(0,0,0);
                     lines[i].vertices()[1] = Vec3f(0,0,0);
-                    // lines[i].vertices()[0] = ms[i].pose.pos();
+                    // lines[i].vertices()[0] = ms[i].pose().pos();
                     // lines[i].vertices()[1] = nrps[ms[i].id_ClosestNRP].position;
                 }
             }
@@ -168,12 +168,12 @@ struct Miner_Group{
         if (drawingLinks){
             for (int i = ms.size() - 1; i >= 0; i--){
                 if (ms[i].resourcePointFound && !ms[i].bankrupted()){
-                    lines[i].vertices()[0] = ms[i].pose.pos();
+                    lines[i].vertices()[0] = ms[i].pose().pos();
                     lines[i].vertices()[1] = nrps[ms[i].id_ClosestNRP].resources[ms[i].id_ClosestResource].position;
                 } else {
                     lines[i].vertices()[0] = Vec3f(0,0,0);
                     lines[i].vertices()[1] = Vec3f(0,0,0);
-                    // lines[i].vertices()[0] = ms[i].pose.pos();
+                    // lines[i].vertices()[0] = ms[i].pose().pos();
                     // lines[i].vertices()[1] = nrps[ms[i].id_ClosestNRP].position;
                 }
             }

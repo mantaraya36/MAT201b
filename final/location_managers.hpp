@@ -89,7 +89,7 @@ struct Factories {
     void drawLinks(Capitalist_Entity& cs){
         if (drawingLinks){
             for (int i = cs.cs.size() - 1; i >= 0; i --){
-                lines[i].vertices()[0] = cs[i].pose.pos();
+                lines[i].vertices()[0] = cs[i].pose().pos();
                 lines[i].vertices()[1] = fs[i].position;
             }
         } else{

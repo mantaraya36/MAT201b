@@ -4,11 +4,15 @@
 #include "al/core/app/al_App.hpp"
 #include "al/core/graphics/al_VAOMesh.hpp"
 
+#include "al/util/scene/al_DynamicScene.hpp"
+
 float boundary_radius = 90.0f;
 
-struct Agent{
+using namespace al;
+
+class Agent : public PositionedVoice {
+public:
     Vec3f velocity, acceleration;
-    Pose pose;
     Color c;
     Quatd q;
     VAOMesh body;
@@ -41,7 +45,7 @@ struct Agent{
         if (velocity.mag() > maxspeed){
             velocity.normalize(maxspeed);
         }
-        pose.pos() += velocity;
+        pose().pos() += velocity;
         acceleration *= 0; //zeros acceleration
         
     }    
@@ -55,14 +59,14 @@ struct Agent{
 
     void facingToward(Vec3f& target){
         //change facing direction based on target
-        Vec3f src = Vec3f(pose.quat().toVectorZ()).normalize();
-        Vec3f dst = Vec3f(target - pose.pos()).normalize();
+        Vec3f src = Vec3f(pose().quat().toVectorZ()).normalize();
+        Vec3f dst = Vec3f(target - pose().pos()).normalize();
         Quatd rot = Quatd::getRotationTo(src,dst);
-        pose.quat() = rot * pose.quat();
+        pose().quat() = rot * pose().quat();
     }
 
     Vec3f seek(Vec3f target){
-        Vec3f desired = target - pose.pos();
+        Vec3f desired = target - pose().pos();
         desired.normalized();
         desired *= maxspeed;
         Vec3f steer = desired - velocity;
@@ -94,7 +98,7 @@ struct Agent{
     }
 
     Vec3f arrive(Vec3f& target){
-        Vec3f desired = target - pose.pos();
+        Vec3f desired = target - pose().pos();
         float d = desired.mag();
         desired.normalize();
         if (d < target_senseRadius){
@@ -113,9 +117,9 @@ struct Agent{
     //border detect
     void borderDetect(){
         Vec3f origin(0,0,0);
-        Vec3f distance = pose.pos() - origin;
+        Vec3f distance = pose().pos() - origin;
         if (distance.mag() > boundary_radius) {
-            Vec3f desired = origin - pose.pos();
+            Vec3f desired = origin - pose().pos();
             Vec3f steer = desired - velocity;
             if (steer.mag() > maxforce) {
                 steer.normalize(maxforce);

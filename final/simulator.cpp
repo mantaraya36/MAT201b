@@ -50,6 +50,7 @@ struct MyApp : DistributedApp<State> {
 
     //market manager
     MarketManager marketManager;
+    DynamicScene scene;
 
 //    //for cuttlebone
 //    State state;
@@ -197,13 +198,13 @@ struct MyApp : DistributedApp<State> {
 
         //camera
         if (cameraSwitch == 1){
-            nav().pos() = capitalists.cs[0].pose.pos() + Vec3f(0,0,-4);
+            nav().pos() = capitalists.cs[0].pose().pos() + Vec3f(0,0,-4);
             //nav().faceToward(capitalists.cs[0].movingTarget, 0.3*dt);
         } else if (cameraSwitch == 2) {
-            nav().pos() = workers.workers[0].pose.pos()+ Vec3f(0,0,-4);
+            nav().pos() = workers.workers[0].pose().pos()+ Vec3f(0,0,-4);
             //nav().faceToward(factories.fs[workers.workers[0].id_ClosestFactory].position, 0.3*dt);
         } else if (cameraSwitch == 3) {
-            nav().pos() = miners.ms[0].pose.pos() + Vec3f(0,0,-4);
+            nav().pos() = miners.ms[0].pose().pos() + Vec3f(0,0,-4);
             //nav().faceToward(NaturalResourcePts.nrps[miners.ms[0].id_ClosestNRP].position, 0.3 * dt);
         } else {
             
@@ -212,7 +213,7 @@ struct MyApp : DistributedApp<State> {
         //capitlist sound position
         for (size_t i = 0; i < capitalists.cs.size(); i++){
         //FIXME AC put back setting sound source position
-//            source[i]->pos(capitalists.cs[i].pose.pos().x,capitalists.cs[i].pose.pos().y, capitalists.cs[i].pose.pos().z);
+//            source[i]->pos(capitalists.cs[i].pose().pos().x,capitalists.cs[i].pose().pos().y, capitalists.cs[i].pose().pos().z);
                 //double d = (source[i].pos() - listener->pos()).mag();
                 //double a = source[i].attenuation(d);
                 //double db = log10(a) * 20.0;
@@ -220,7 +221,7 @@ struct MyApp : DistributedApp<State> {
         }
         //worker sound position
         // for (int i = 0; i < workers.workers.size(); i++){
-        //     sourceWorker[i]->pos(workers.workers[i].pose.pos().x,workers.workers[i].pose.pos().y, workers.workers[i].pose.pos().z);
+        //     sourceWorker[i]->pos(workers.workers[i].pose().pos().x,workers.workers[i].pose().pos().y, workers.workers[i].pose().pos().z);
         //         //double d = (source[i].pos() - listener->pos()).mag();
         //         //double a = source[i].attenuation(d);
         //         //double db = log10(a) * 20.0;
@@ -251,7 +252,7 @@ struct MyApp : DistributedApp<State> {
         state().phase = phase;
 
         for (size_t i = 0; i < miners.ms.size(); i ++){
-            state().miner_pose[i] = miners.ms[i].pose;
+            state().miner_pose[i] = miners.ms[i].pose();
             state().miner_scale[i] = miners.ms[i].scaleFactor;
             state().miner_poetryHoldings[i] = miners.ms[i].poetryHoldings;
             state().miner_bankrupted[i] = miners.ms[i].bankrupted();
@@ -261,7 +262,7 @@ struct MyApp : DistributedApp<State> {
     
         }
         for (size_t i = 0; i < workers.workers.size(); i ++){
-            state().worker_pose[i] = workers.workers[i].pose;
+            state().worker_pose[i] = workers.workers[i].pose();
             state().worker_scale[i] = workers.workers[i].scaleFactor;
             state().worker_poetryHoldings[i] = workers.workers[i].poetryHoldings;
             state().worker_bankrupted[i] = workers.workers[i].bankrupted();
@@ -269,7 +270,7 @@ struct MyApp : DistributedApp<State> {
             state().worker_lines_posB[i] = workers.lines[i].vertices()[1];
         }
         for (size_t i = 0; i < capitalists.cs.size(); i ++){
-            state().capitalist_pose[i] = capitalists.cs[i].pose;
+            state().capitalist_pose[i] = capitalists.cs[i].pose();
             state().capitalist_scale[i] = capitalists.cs[i].scaleFactor;
             state().capitalist_poetryHoldigs[i] = capitalists.cs[i].poetryHoldings;
             state().capitalist_bankrupted[i] = capitalists.cs[i].bankrupted();
@@ -335,7 +336,7 @@ struct MyApp : DistributedApp<State> {
 //            material();
             
             //glEnable(GL_POINT_SPRITE);
-            
+            scene.render(g);
             //draw all the entities
             metropolis.draw(g);
             factories.draw(g);
@@ -350,36 +351,28 @@ struct MyApp : DistributedApp<State> {
 
     }
     virtual void onSound(AudioIOData& io) {
-        //gam::Sync::master().spu(AlloSphereAudioSpatializer::audioIO().fps());
-        float x = nav().pos().x;
-        float y = nav().pos().y;
-        float z = nav().pos().z;
-        // FIXME AC put back setting of listener pose
-//        listener->pos(x,y,z);
-
-        
-
-        int numFrames = io.framesPerBuffer();
-        for (int k = 0; k < numFrames; k++) {
-            //capitalist sample
-            for (int i = 0; i < capitalists.cs.size(); i++) {
-                //io.frame(0);
-                float f = 0;
-                f = capitalists.cs[i].onProcess(io);
-                double d = isnan(f) ? 0.0 : (double)f; // XXX need this nan check?
-                // FIXME AC put back writing audio
-//                source[i]->writeSample(d);
-                io.frame(0);
-            }
-            //worker sample
-            // for (int i = 0; i < workers.workers.size(); i ++){
-            //     float f = 0;
-            //     f = workers.workers[i].onProcess(io);
-            //     double d = isnan(f) ? 0.0 : (double)f;
-            //     sourceWorker[i]->writeSample(d);
-            //     io.frame(0);
-            // }
-        }
+        scene.listenerPose(nav());
+        scene.render(io);
+//        int numFrames = io.framesPerBuffer();
+//        for (int k = 0; k < numFrames; k++) {
+//            //capitalist sample
+//            for (int i = 0; i < capitalists.cs.size(); i++) {
+//                //io.frame(0);
+//                float f = 0;
+//                capitalists.cs[i].onProcess(io); // XXX need this nan check?
+//                // FIXME AC put back writing audio
+////                source[i]->writeSample(d);
+////                io.frame(0);
+//            }
+//            //worker sample
+//            // for (int i = 0; i < workers.workers.size(); i ++){
+//            //     float f = 0;
+//            //     f = workers.workers[i].onProcess(io);
+//            //     double d = isnan(f) ? 0.0 : (double)f;
+//            //     sourceWorker[i]->writeSample(d);
+//            //     io.frame(0);
+//            // }
+//        }
 //        io.frame(0);
         
 //        v_scene.render(io);
